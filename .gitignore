@@ -77,3 +77,7 @@ checkpoints/
 experiments/
 outputs/
 logs/
+
+probability-practice/quizzes
+probability-practice/notebooks
+notebooks
