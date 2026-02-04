@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "SlashCommand(/pythonic:py-init)",
-      "Bash(uv add:*)"
+      "Bash(uv add:*)",
+      "mcp__obsidian__list_directory",
+      "Bash(claude-code skills:*)",
+      "Skill(python-practice)"
     ],
     "deny": [],
     "ask": []
