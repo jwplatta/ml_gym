@@ -18,8 +18,32 @@
     "active": true
   },
   {
-    "file": "compute_portfolio_returns.md",
-    "topics": ["portfolio", "returns", "performance"],
+    "file": "portfolio_returns.md",
+    "topics": ["returns"],
+    "difficulty": "easy",
+    "active": true
+  },
+  {
+    "file": "portfolio_returns_overall_sharpe.md",
+    "topics": ["portfolio", "returns", "performance", "sharpe"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "portfolio_returns_sharpe_by_year.md",
+    "topics": ["portfolio", "returns", "performance", "sharpe"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "portfolio_returns_correlation.md",
+    "topics": ["portfolio", "returns", "correlation"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "portfolio_returns_cumulative_plot.md",
+    "topics": ["portfolio", "returns", "plot"],
     "difficulty": null,
     "active": true
   },
@@ -45,18 +69,18 @@
     "file": "calculate_returns.md",
     "topics": ["returns"],
     "difficulty": null,
-    "active": false
+    "active": true
   },
   {
     "file": "drawdowns.md",
     "topics": ["performance", "risk"],
     "difficulty": null,
-    "active": false
+    "active": true
   },
   {
     "file": "regression_on_SPY.md",
     "topics": ["regression", "beta"],
     "difficulty": null,
-    "active": false
+    "active": true
   }
 ]
