@@ -5,7 +5,8 @@
       "Bash(uv add:*)",
       "mcp__obsidian__list_directory",
       "Bash(claude-code skills:*)",
-      "Skill(python-practice)"
+      "Skill(python-practice)",
+      "Skill(quant-practice)"
     ],
     "deny": [],
     "ask": []
