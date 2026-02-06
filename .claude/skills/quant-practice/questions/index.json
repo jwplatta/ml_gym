@@ -1,0 +1,62 @@
+[
+  {
+    "file": "daily_returns.md",
+    "topics": ["returns", "data"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "annualized_sharpe_ratio.md",
+    "topics": ["sharpe", "momentum", "signals"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "compute_portfolio.md",
+    "topics": ["portfolio", "weights", "signals"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "compute_portfolio_returns.md",
+    "topics": ["portfolio", "returns", "performance"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "performance_stats.md",
+    "topics": ["performance", "stats", "sharpe"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "dollar_profits.md",
+    "topics": ["pnl", "returns", "data"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "reversal_signal.md",
+    "topics": ["signals", "rank", "reversion"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "calculate_returns.md",
+    "topics": ["returns"],
+    "difficulty": null,
+    "active": false
+  },
+  {
+    "file": "drawdowns.md",
+    "topics": ["performance", "risk"],
+    "difficulty": null,
+    "active": false
+  },
+  {
+    "file": "regression_on_SPY.md",
+    "topics": ["regression", "beta"],
+    "difficulty": null,
+    "active": false
+  }
+]
