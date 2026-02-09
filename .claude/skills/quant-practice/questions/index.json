@@ -82,5 +82,35 @@
     "topics": ["regression", "beta"],
     "difficulty": null,
     "active": true
+  },
+  {
+    "file": "rolling_corr_vol_beta.md",
+    "topics": ["rolling", "correlation", "volatility", "beta"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "residual_returns.md",
+    "topics": ["residuals", "alpha", "beta"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "information_ratio.md",
+    "topics": ["information_ratio", "sharpe", "performance"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "compare_returns_and_residuals.md",
+    "topics": ["returns", "residuals", "correlation", "volatility"],
+    "difficulty": null,
+    "active": true
+  },
+  {
+    "file": "compare_strategy_sharpes.md",
+    "topics": ["strategy", "sharpe", "momentum", "comparison"],
+    "difficulty": null,
+    "active": true
   }
 ]
