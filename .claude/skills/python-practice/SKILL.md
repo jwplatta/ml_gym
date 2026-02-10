@@ -8,13 +8,15 @@ allowed-tools: Read, Grep, Glob, Write, Bash, AskUserQuestion
 
 Generate a Jupyter notebook filled with practice challenges and questions. Challenges cover **pandas** (data manipulation, cleaning, exploration, time series) and **algorithms** (vanilla Python data structures, sorting, searching, recursion).
 
+Follow the rules in [RULES.md](RULES.md).
+
 ## Workflow
 
 1. **Gather parameters** using AskUserQuestion. Ask the user:
    - **Category**: Which category to focus on, or generate a random mix from all categories. Present the subcategories listed below.
    - **Difficulty**: easy, medium, or hard.
    - **Number of questions**: How many challenges to include (default 10).
-   - **Output directory**: Where to save the notebook. Default is the current working directory.
+   - **Output directory**: Where to save the notebook. Default is `notebooks/practice`.
    - **Previous exercises folder** (optional): Path to a folder containing previous practice notebooks. If provided, scan these notebooks to avoid repeating exact questions. You may generate the same *type* of question but must vary the data, parameters, or scenario to ensure uniqueness.
 
 2. **Check for previous exercises** (if folder provided):
@@ -34,15 +36,17 @@ Generate a Jupyter notebook filled with practice challenges and questions. Chall
      python scripts/generate_notebook.py \
        --bank questions/bank.json \
        --category pandas --difficulty easy --count 5 \
-       --output ./notebooks
+       --output notebooks/practice
      ```
    - **Option B — custom questions**: Generate a JSON array of question objects and pipe to the script:
      ```bash
      python scripts/generate_notebook.py \
        --category pandas --difficulty medium \
-       --output ./notebooks < /tmp/questions.json
+       --output notebooks/practice < /tmp/questions.json
      ```
-   - Each question object must have `prompt` (str) and `solution` (str). Optional fields: `hint` (str, will be rendered in a collapsed `<details>` tag), `setup` (str, per-question code cell), `subcategory` (str).
+   - Each question object must have `prompt` (str) and `solution` (str). Optional fields:
+     - `hint` (str, will be rendered in a collapsed `<details>` tag). Hints must be hidden by default.
+     - `setup` (str, per-question code cell), `subcategory` (str).
 
 5. **Customize the setup cell** — replace the template's sample data with the real market data fetched in step 3. Use the output of `fetch_price_data.py --format code` or `--format returns` as the setup cell content.
 
@@ -62,11 +66,6 @@ Each generated notebook must follow this structure:
    - An **empty code cell** for the user to write their solution.
    - A **hidden solution cell** wrapped in a markdown `<details><summary>✅ Solution</summary>...</details>` tag so the user can reveal it.
 
-### DO NOT
-1. Include summaries at the end of the notebook.
-
-
-
 ## Scripts
 
 All scripts live in [scripts/](scripts/) and are run from that directory.
@@ -77,14 +76,14 @@ Builds a `.ipynb` file from a category template + question data. Uses `nbformat`
 ```bash
 # From question bank:
 python scripts/generate_notebook.py --bank questions/bank.json \
-  --category pandas --subcategory series --difficulty easy --count 5 --output .
+  --category pandas --subcategory series --difficulty easy --count 5 --output notebooks/practice
 
 # From a JSON file of custom questions:
 python scripts/generate_notebook.py --questions /tmp/my_questions.json \
-  --category algorithms --difficulty hard --output .
+  --category algorithms --difficulty hard --output notebooks/practice
 
 # From stdin:
-cat questions.json | python scripts/generate_notebook.py --category pandas --output .
+cat questions.json | python scripts/generate_notebook.py --category pandas --output notebooks/practice
 ```
 
 ### `random_tickers.py`
