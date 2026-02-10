@@ -6,7 +6,11 @@
       "mcp__obsidian__list_directory",
       "Bash(claude-code skills:*)",
       "Skill(python-practice)",
-      "Skill(quant-practice)"
+      "Skill(quant-practice)",
+      "Bash(mkdir:*)",
+      "Bash(grep:*)",
+      "Bash(tree:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []
