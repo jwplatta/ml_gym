@@ -82,3 +82,7 @@ probability-practice/quizzes
 probability-practice/notebooks
 notebooks
 practice_log.json
+
+.codex/skills
+.claude/skills
+.gemini/skills
