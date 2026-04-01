@@ -86,3 +86,5 @@ practice_log.json
 .codex/skills
 .claude/skills
 .gemini/skills
+twsq/
+twsq.egg-info
