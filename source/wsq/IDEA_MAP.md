@@ -1,0 +1,248 @@
+# Quant Workflow Idea Map
+
+## The Workflow
+
+- **1. Signal Idea**
+  - story first — what do you believe is true about markets and why
+  - the story is your defense against overfitting later
+  - strategy type classification before any code
+    - cross-sectional (relative value)
+      - ranks assets against each other at each point in time
+      - always long some, short others
+      - market-neutral by construction (weights sum to zero)
+      - example: yesterday's biggest losers will bounce back vs. the rest of the universe
+    - time-series
+      - each asset is traded based on its own past
+      - may be net long or net short at any time
+      - example: assets with high rolling Sharpe over the past year continue to trend
+    - combination (time-series cross-sectional)
+      - pairs trading: find two historically correlated assets, trade the divergence
+  - strategy categories
+    - momentum — trend continues (winners keep winning)
+      - time horizon: longer or lagged horizons show momentum (UMD skips most recent month)
+      - new information / activity: post-earnings drift, post-forecast-revision drift
+      - seasonality: time of day, time of year, day of week
+      - investment themes: sectors, asset classes rotating in and out of favor
+      - technical: leveraged ETF rebalancing, intraday momentum, index reconstitutions
+    - reversal — extreme moves tend to snap back
+      - short horizons show reversal; longer horizons show momentum
+      - absolute change, range-bound, or pairs-based
+      - microstructure noise (bid-ask bounce) drives very short-term reversal
+    - value — intrinsic value diverges from price, should converge
+      - book-to-price, E/P, S/P, operating cash flow/P, dividend yield
+      - enterprise value variants: EBIT/EV, EBITDA/EV, gross profit/EV
+      - use a mix of metrics; all are just estimates of intrinsic value
+    - event-driven — discrete events create predictable price patterns
+      - earnings: surprise direction and magnitude, post-earnings announcement drift
+      - mergers: buy target, short acquirer, earn the spread until deal closes
+      - seasonality: sell in May, options expiration clustering, after mid-terms
+      - index rebalances: buy announced additions, short announced removals ahead of the event
+
+- **2. Unconstrained Backtest**
+  - the canonical pipeline (memorize this)
+    - signal construction
+    - rank (cross-sectional) or threshold (time-series)
+    - demean (cross-sectional: makes weights sum to zero; market-neutral)
+    - normalize (divide by sum of absolute weights; controls total exposure)
+    - shift (apply yesterday's weights to today's returns — no look-ahead bias)
+    - returns (portfolio return = sum of weight × asset return)
+    - evaluate
+  - look-ahead bias
+    - using information at time *t* that wasn't available until *t+1*
+    - canonical fix: `.shift()` on weights before multiplying by returns
+    - test: run without `.shift()`, confirm Sharpe inflates, add back `.shift()`
+    - any forward-looking calculation in the signal construction is also look-ahead bias
+  - train/validate split
+    - split before any parameter iteration, never touch validation until done
+    - time-series split: earlier period trains, later period validates
+    - cross-section split: some securities train, others validate
+    - if you iterate on validation, it leaks into your optimization
+  - Sharpe gate
+    - if gross SR < 1.0 on training data, the signal isn't there — change it
+    - do not tune parameters to push a weak signal over the gate
+  - key metrics at this stage
+    - Sharpe ratio (primary gate)
+    - max drawdown (cumulative peak-to-trough decline)
+    - drawdown duration (how long before recovery)
+    - hit rate (fraction of profitable periods)
+    - signal spread (average return in strong positive signal regime vs. strong negative)
+
+- **3. Breadth**
+  - Fundamental Law of Active Management
+    - `SR_portfolio = SR_per_bet × √N`
+    - N = number of **independent** bets
+    - extending a strategy to more uncorrelated assets is almost always worth it
+    - verify: does actual SR improvement approximate √N?
+  - Law of Diversification (two assets, equal SR and vol)
+    - `SR_portfolio = SR_per_bet / √((1 + corr) / 2)`
+    - negatively correlated assets are the best case; hard to find
+    - corr 0.0–0.25: acceptable, genuine breadth
+    - corr > 0.25: diminishing returns; bets are not independent
+    - correlated bets are redundant — adding more of what you already have
+  - where to look for breadth
+    - across asset classes (equities, bonds, gold, real estate)
+    - across geographies
+    - across signal types (momentum + mean-reversion are often low correlation)
+    - across time horizons (daily + weekly signals can be combined)
+
+- **4. Weighting and Portfolio Construction**
+  - dollar weights vs. vol weights
+    - dollar-weighting equal amounts ignores that high-vol assets dominate risk
+    - vol-weighting allocates inversely to volatility so each asset contributes equal risk
+  - the hierarchy of weighting schemes
+    - equal weight — simplest baseline
+    - equal vol weight — accounts for volatility; ignores correlations and returns
+      - `w_i ∝ 1 / σ_i`
+      - if all assets have similar Sharpe ratios, equal vol is nearly optimal
+    - Sharpe-ratio weights — proportional to individual Sharpe ratios; ignores correlations
+      - `w_i ∝ μ_i / σ_i²`
+    - Sharpe-optimal (mean-variance) — theoretically best
+      - `w = Σ⁻¹μ` (inverse covariance matrix times expected returns)
+      - accounts for both returns and correlations
+      - up-weights high-return, low-vol assets; down-weights correlated assets
+      - allows negative weights (short positions)
+      - normalize by `sum(|w|)` not `sum(w)`
+  - strategy space vs. stock space
+    - stock space: weight individual securities
+      - historical returns are a terrible estimate of μ (that is the whole game)
+      - historical covariance is a passable estimate of Σ
+    - strategy space: weight pre-defined strategies that already have baked-in stock weights
+      - historical strategy returns are a reasonable estimate of μ
+      - historical strategy covariance is a reasonable estimate of Σ
+      - most quants work here
+  - leverage
+    - borrowing to invest more than you have
+    - scales both return and volatility by the same factor — SR is invariant to leverage
+    - use leverage with high-SR strategies to target higher returns at the same risk-adjusted level
+  - Risk Parity
+    - equal-vol weight asset classes as a strategy
+    - often combined with leverage to achieve higher returns while maintaining diversification
+
+- **5. Performance Evaluation Beyond Sharpe**
+  - Sharpe ratio
+    - `SR = mean(returns) / std(returns) × √252`
+    - benchmarks: S&P 500 ≈ 0.45, Buffett ≈ 0.75, hedge funds ≈ 2.0+
+    - target: 2.0+
+    - SR is invariant to leverage
+  - drawdowns
+    - you are in a drawdown whenever you are below a prior peak
+    - max drawdown: the worst peak-to-trough decline
+    - drawdown duration: how long you stay below a prior peak
+    - `drawdown = cumulative - cumulative.cummax()`
+    - Calmar ratio = SR / max drawdown (normalizes by drawdown severity)
+  - Information Ratio (IR)
+    - the Sharpe ratio of the alpha component only (residual after removing beta)
+    - measures alpha quality: excess return per unit of idiosyncratic risk
+    - if SR >> IR, most performance is from beta, not skill
+  - alpha t-stat gate
+    - t-stat < 2.0: alpha is statistically indistinguishable from zero
+    - t-stat > 2.0: roughly significant at 5% level
+    - t-stat > 3.0: highly significant
+  - other metrics
+    - Sortino ratio — like Sharpe but only penalizes downside volatility
+    - hit rate — fraction of profitable periods
+    - slugging ratio — average win size vs. average loss size
+    - value at risk (VaR)
+    - skewness, kurtosis
+
+- **6. Risk Factor Analysis and Alpha Purification**
+  - beta and alpha (CAPM)
+    - `investment = β × benchmark + α + ε`
+    - β = market sensitivity; how much the investment moves per unit of market move
+    - α = excess return beyond what beta explains
+    - ε = residual idiosyncratic risk (decorrelated with benchmark by construction)
+    - regression finds β and α by minimizing sum of squared residuals
+  - why purify?
+    - benchmarking: isolates what you actually added beyond passive market exposure
+    - portfolio construction: only the pure (decorrelated) component of a strategy can improve your total portfolio's SR
+    - if you're already holding market exposure elsewhere, beta contributions are redundant
+  - factor models
+    - CAPM: one factor (market)
+    - Fama-French 3-factor: market (Mkt-RF), size (SMB: small minus big), value/growth (HML: high minus low)
+      - positive SMB loading: small-cap tilt
+      - negative HML loading: growth tilt (expected for tech-heavy strategies)
+    - Barra: commercial multi-factor model with many industry and style factors
+  - factor analysis steps
+    - R-squared: what fraction of return variance is explained by the factors?
+    - risk contribution: `std(factor × loading) / std(total return)` per factor
+    - stress testing: factor × loading × 5σ shock — what is the single-day loss under extreme moves?
+    - neutralization: subtract factor exposures from returns to isolate pure alpha
+      - `neutralized = returns - Σ(factor_loading × factor_return)`
+    - calculate SR and IR on neutralized returns
+  - the purification chain
+    - total SR → CAPM-purified SR → FF3-purified SR
+    - each step removes a layer of systematic exposure
+    - if SR collapses at any step, the performance was factor-driven, not alpha
+
+- **7. Optimized Backtest**
+  - adds realistic constraints to the unconstrained backtest
+  - transaction costs
+    - commissions: explicit fee per trade
+    - bid-ask spread: implicit cost from market microstructure
+    - slippage: market impact — your order moves the price against you
+    - total: `net_return = gross_return - turnover × cost_bps × 1e-4`
+  - turnover
+    - `turnover = sum(|weight[t] - weight[t-1]|)` per period
+    - high turnover × high cost = net Sharpe collapses
+    - levers to reduce turnover
+      - signal smoothing: apply SMA or EWMA to signal before ranking (reduces day-to-day signal changes)
+      - longer rebalancing frequency
+      - ADV constraints (cap position as fraction of average daily volume)
+  - the optimizer's role
+    - translates ideal signal weights into tradeable weights respecting tcosts, risk limits, liquidity
+    - objective: minimize tracking error to ideal weights subject to constraints
+    - not maximizing raw returns
+
+- **8-9. Paper Trading and Live Trading**
+  - only after both backtests look convincing
+  - paper trading validates: data latency, order routing, slippage estimates, infrastructure
+  - live: start small, verify live SR tracks backtest SR, then scale
+  - slippage becomes worse at scale — participation rate grows, market impact increases
+
+---
+
+## Cross-Cutting Concepts
+
+- **Research pitfalls**
+  - overfitting — the most important challenge
+    - tuning parameters until the backtest looks good
+    - fix: out-of-sample split + smooth parameter surface
+    - a sharp SR spike at one parameter value is an artifact, not a signal
+    - look for flat regions where SR is stable across a range of parameter values
+    - `P(strategy works | backtest) ∝ P(strategy works) × P(backtest | strategy works)`
+    - having a good story raises your prior; a weak story lowers your confidence in any backtest result
+  - over-modeling
+    - adding ML complexity when the signal isn't there
+    - financial data has a very high noise-to-signal ratio
+    - simpler signals that work are more trustworthy than complex models that barely work
+  - common parameter traps
+    - entry/exit thresholds
+    - lookback windows
+    - backtest frequencies
+    - winsorization thresholds
+    - signal transforms (rank vs. inverse vs. CDF normalization)
+  - rules of thumb
+    - use standard values where they exist; only tune when necessary
+    - when you do tune, grid search and look at the full surface
+    - discount backtests proportionally to the number of parameters tuned
+
+- **The two gates**
+  - SR gate (Week 1 / unconstrained stage): gross SR ≥ 1.0 on training data before moving forward
+  - alpha t-stat gate (Week 2 / factor stage): alpha t-stat ≥ 2.0 after factor purification
+  - failing a gate means iterate on the signal, not tune parameters
+
+- **The canonical pipeline** (write from memory)
+  ```
+  signal → rank/threshold → demean → normalize → shift → returns → evaluate
+  ```
+
+- **Key formulas**
+  - Sharpe: `mean(r) / std(r) × √252`
+  - Beta: `cov(r, market) / var(market)`
+  - IR: `mean(alpha) / std(alpha) × √252`
+  - Optimal weights: `Σ⁻¹μ`, normalized by `sum(|w|)`
+  - Fundamental Law: `SR_total = SR_per_bet × √N`
+  - Law of Diversification: `SR_portfolio = SR_per_bet / √((1 + corr) / 2)`
+  - Turnover: `sum(|w[t] - w[t-1]|)`
+  - Net return: `gross_return - turnover × cost_bps × 1e-4`
+  - Drawdown: `cumulative - cumulative.cummax()`
