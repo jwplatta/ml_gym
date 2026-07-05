@@ -1,0 +1,16 @@
+from source.coach.questions.multiplication import GENERATORS as MULTIPLICATION_GENERATORS
+from source.coach.questions.probability import GENERATORS as PROBABILITY_GENERATORS
+from source.coach.questions.squaring import GENERATORS as SQUARING_GENERATORS
+
+ALL_GENERATORS = (
+    *MULTIPLICATION_GENERATORS,
+    *PROBABILITY_GENERATORS,
+    *SQUARING_GENERATORS,
+)
+
+__all__ = [
+    "ALL_GENERATORS",
+    "MULTIPLICATION_GENERATORS",
+    "PROBABILITY_GENERATORS",
+    "SQUARING_GENERATORS",
+]
