@@ -3,28 +3,24 @@ from __future__ import annotations
 import plotly.express as px
 import streamlit as st
 
-from source.coach.analytics import (
+from source.fast_math.analytics import (
     accuracy_by_field,
     daily_question_counts_by_type,
     score_trend,
     summarize_history,
 )
-from source.coach.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_answer
-from source.coach.registry import get_topics
-from source.coach.storage import append_quiz_attempt, load_quiz_history
+from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_answer
+from source.fast_math.registry import get_topics
+from source.fast_math.storage import append_quiz_attempt, load_quiz_history
 
 
 def run() -> None:
-    st.set_page_config(page_title="Coach Quiz", page_icon="🧠", layout="wide")
+    st.set_page_config(page_title="Fast Math", page_icon="🧠", layout="wide")
     initialize_state()
 
-    st.title("Coach Quiz")
+    st.title("Fast Math")
     pages = ["Dashboard", "New Quiz", "Quiz"]
-    current_page = st.session_state.get("page", "Dashboard")
-    if current_page not in pages:
-        current_page = "Dashboard"
-    page = st.sidebar.radio("Navigate", pages, index=pages.index(current_page))
-    st.session_state.page = page
+    page = st.sidebar.radio("Navigate", pages, key="nav_page")
 
     if page == "Dashboard":
         render_dashboard()
@@ -39,7 +35,7 @@ def initialize_state() -> None:
     st.session_state.setdefault("last_feedback", None)
     st.session_state.setdefault("completed_quiz_id", None)
     st.session_state.setdefault("completed_quiz_record", None)
-    st.session_state.setdefault("page", "Dashboard")
+    st.session_state.setdefault("nav_page", "Dashboard")
 
 
 def render_dashboard() -> None:
@@ -135,7 +131,7 @@ def render_new_quiz() -> None:
         st.session_state.last_feedback = None
         st.session_state.completed_quiz_id = None
         st.session_state.completed_quiz_record = None
-        st.session_state.page = "Quiz"
+        st.session_state.nav_page = "Quiz"
         st.rerun()
 
 

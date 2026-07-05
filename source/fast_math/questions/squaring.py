@@ -1,6 +1,6 @@
 import random
 
-from source.coach.models import GeneratedQuestion, GradingSpec
+from source.fast_math.models import GeneratedQuestion, GradingSpec
 
 
 def square_n_nearest_tens(rng: random.Random) -> GeneratedQuestion:

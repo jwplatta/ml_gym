@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from source.coach.models import QuizAttemptRecord
+from source.fast_math.models import QuizAttemptRecord
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = REPO_ROOT / ".coach"
+DATA_DIR = REPO_ROOT / ".fast_math"
 QUIZ_HISTORY_PATH = DATA_DIR / "quiz_history.jsonl"
 
 

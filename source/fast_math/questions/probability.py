@@ -2,7 +2,7 @@ import math
 import random
 from fractions import Fraction
 
-from source.coach.models import GeneratedQuestion, GradingSpec
+from source.fast_math.models import GeneratedQuestion, GradingSpec
 
 
 def sum_odd_nums_up_to_n(rng: random.Random) -> GeneratedQuestion:

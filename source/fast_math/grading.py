@@ -3,7 +3,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from fractions import Fraction
 
-from source.coach.models import GeneratedQuestion
+from source.fast_math.models import GeneratedQuestion
 
 
 def normalize_text(value: str) -> str:

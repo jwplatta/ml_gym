@@ -4,8 +4,8 @@ import random
 from collections import defaultdict
 from collections.abc import Callable
 
-from source.coach.models import GeneratedQuestion
-from source.coach.questions import ALL_GENERATORS
+from source.fast_math.models import GeneratedQuestion
+from source.fast_math.questions import ALL_GENERATORS
 
 QuestionGenerator = Callable[[random.Random], GeneratedQuestion]
 

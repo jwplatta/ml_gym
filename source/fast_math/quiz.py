@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from time import monotonic
 from uuid import uuid4
 
-from source.coach.grading import is_correct_answer
-from source.coach.models import GeneratedQuestion, QuestionAttempt, QuizAttemptRecord, utc_now_iso
-from source.coach.registry import generators_by_topic
+from source.fast_math.grading import is_correct_answer
+from source.fast_math.models import GeneratedQuestion, QuestionAttempt, QuizAttemptRecord, utc_now_iso
+from source.fast_math.registry import generators_by_topic
 
 
 @dataclass

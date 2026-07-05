@@ -77,7 +77,7 @@ checkpoints/
 experiments/
 outputs/
 logs/
-.coach/
+.fast_math/
 
 probability-practice/quizzes
 probability-practice/notebooks
