@@ -68,9 +68,29 @@ def power_of_two(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def fast_two_digits(rng: random.Random) -> GeneratedQuestion:
+    num = rng.randint(20, 99)
+
+    while num % 5 == 0 or num % 10 == 0:
+        num = rng.randint(20, 99)
+
+    ans = num ** 2
+
+    return GeneratedQuestion(
+        question_type="fast_two_digits",
+        topic="squaring",
+        prompt=f"{num}^2 =",
+        answer=str(ans),
+        answer_display=str(ans),
+        hint="1. Square the digits and place them next to each other.\n2. Then multiply them together, double them, add a zero.\n3. Then add the two results together.",
+        grading=GradingSpec.numeric(),
+        metadata={"base": num, "exponent": 2},
+    )
+
 GENERATORS = [
     square_n_nearest_tens,
     two_digit_fives,
     nearest_fives,
     power_of_two,
+    fast_two_digits
 ]
