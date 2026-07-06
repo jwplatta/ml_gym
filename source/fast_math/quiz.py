@@ -73,6 +73,7 @@ def submit_answer(active_quiz: ActiveQuiz, user_answer: str) -> QuestionAttempt:
         question_id=question.question_id,
         question_type=question.question_type,
         topic=question.topic,
+        subtopic=question.subtopic,
         prompt=question.prompt,
         canonical_answer=question.answer,
         answer_display=question.answer_display,

@@ -33,6 +33,7 @@ class GeneratedQuestion:
     answer_display: str
     hint: str | None
     grading: GradingSpec
+    subtopic: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     question_id: str = field(default_factory=lambda: str(uuid4()))
 
@@ -47,6 +48,7 @@ class QuestionAttempt:
     question_id: str
     question_type: str
     topic: str
+    subtopic: str | None
     prompt: str
     canonical_answer: str
     answer_display: str
