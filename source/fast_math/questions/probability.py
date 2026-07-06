@@ -5,55 +5,768 @@ from fractions import Fraction
 from source.fast_math.models import GeneratedQuestion, GradingSpec
 
 
+def is_prime(value: int) -> bool:
+    if value < 2:
+        return False
+    if value == 2:
+        return True
+    if value % 2 == 0:
+        return False
+    limit = math.isqrt(value)
+    for divisor in range(3, limit + 1, 2):
+        if value % divisor == 0:
+            return False
+    return True
+
+
+def format_fraction_as_decimal(value: Fraction) -> str:
+    return f"{float(value):.4f}".rstrip("0").rstrip(".")
+
+
+def choose_expectation_answer_format(value: Fraction) -> tuple[str, str, str, GradingSpec]:
+    if value.denominator == 1:
+        exact_value = str(value.numerator)
+        return exact_value, exact_value, "Give an exact answer.", GradingSpec.numeric()
+
+    denominator = value.denominator
+    while denominator % 2 == 0:
+        denominator //= 2
+    while denominator % 5 == 0:
+        denominator //= 5
+
+    if denominator == 1 and value.denominator <= 100:
+        decimal = format_fraction_as_decimal(value)
+        return decimal, f"{decimal} (exactly {value})", "Give a decimal answer.", GradingSpec.numeric(
+            tolerance=0.001
+        )
+
+    fraction = str(value)
+    return fraction, fraction, "Give a simplified fraction.", GradingSpec.fraction()
+
+
+def solve_linear_system(matrix: list[list[Fraction]], vector: list[Fraction]) -> list[Fraction]:
+    size = len(vector)
+    augmented = [row[:] + [value] for row, value in zip(matrix, vector, strict=True)]
+
+    for pivot_index in range(size):
+        pivot_row = next(
+            row_index for row_index in range(pivot_index, size) if augmented[row_index][pivot_index] != 0
+        )
+        augmented[pivot_index], augmented[pivot_row] = augmented[pivot_row], augmented[pivot_index]
+
+        pivot = augmented[pivot_index][pivot_index]
+        augmented[pivot_index] = [entry / pivot for entry in augmented[pivot_index]]
+
+        for row_index in range(size):
+            if row_index == pivot_index:
+                continue
+            factor = augmented[row_index][pivot_index]
+            if factor == 0:
+                continue
+            augmented[row_index] = [
+                entry - factor * pivot_entry
+                for entry, pivot_entry in zip(augmented[row_index], augmented[pivot_index], strict=True)
+            ]
+
+    return [row[-1] for row in augmented]
+
+
 def even_or_prime_die_roll(rng: random.Random) -> GeneratedQuestion:
-    answer = Fraction(4, 6)
+    sides = rng.randrange(2, 20, 2)
+    even_outcomes = [value for value in range(1, sides + 1) if value % 2 == 0]
+    prime_outcomes = [value for value in range(1, sides + 1) if is_prime(value)]
+    overlap_outcomes = sorted(set(even_outcomes) & set(prime_outcomes))
+    favorable_outcomes = sorted(set(even_outcomes) | set(prime_outcomes))
+    answer = Fraction(len(favorable_outcomes), sides)
     return GeneratedQuestion(
         question_type="even_or_prime_die_roll",
         topic="probability",
-        prompt="What is the probability of rolling a fair six-sided die and getting an even number or a prime number? Give your answer as a simplified fraction.",
-        answer="2/3",
-        answer_display="2/3",
+        subtopic="probability-rules",
+        prompt=f"What is the probability of rolling a fair {sides}-sided die and getting an even number or a prime number? Give your answer as a simplified fraction.",
+        answer=str(answer),
+        answer_display=str(answer),
         hint="Use the union rule: P(A or B) = P(A) + P(B) - P(A and B).",
         grading=GradingSpec.fraction(),
-        metadata={"sample_space": 6, "favorable_outcomes": [2, 3, 4, 6], "fraction": str(answer)},
+        metadata={
+            "sample_space": sides,
+            "even_outcomes": even_outcomes,
+            "prime_outcomes": prime_outcomes,
+            "overlap_outcomes": overlap_outcomes,
+            "favorable_outcomes": favorable_outcomes,
+            "fraction": str(answer),
+        },
     )
 
 
-def equal_heads_three_flips(rng: random.Random) -> GeneratedQuestion:
-    favorable = sum(math.comb(3, k) ** 2 for k in range(4))
-    total = 8 * 8
+def equal_heads_n_flips(rng: random.Random) -> GeneratedQuestion:
+    flips = rng.randint(1, 5)
+    favorable = sum(math.comb(flips, k) ** 2 for k in range(flips + 1))
+    total = 2**flips * 2**flips
     result = Fraction(favorable, total)
     return GeneratedQuestion(
-        question_type="equal_heads_three_flips",
+        question_type="equal_heads_n_flips",
         topic="probability",
-        prompt="You and your opponent each flip a fair coin 3 times. What is the probability that you get the same number of heads? Give a simplified fraction.",
+        subtopic="probability-rules",
+        prompt=f"You and your opponent each flip a fair coin {flips} times. What is the probability that you get the same number of heads? Give a simplified fraction.",
         answer=f"{result.numerator}/{result.denominator}",
         answer_display=f"{result.numerator}/{result.denominator}",
-        hint="Condition on the number of heads you get, then match the opponent.",
+        hint=(
+            "Break it into disjoint cases: 0 heads, 1 head, ..., n heads. "
+            "For each k, multiply P(you get k heads) by P(opponent gets k heads), "
+            "then add those case probabilities together."
+        ),
         grading=GradingSpec.fraction(),
-        metadata={"favorable": favorable, "total": total},
+        metadata={"flips": flips, "favorable": favorable, "total": total, "fraction": str(result)},
+    )
+
+
+def all_target_children_given_at_least_one(rng: random.Random) -> GeneratedQuestion:
+    children = rng.randint(2, 4)
+    target_gender = rng.choice(["girl", "boy"])
+    answer = Fraction(1, 2**children - 1)
+    return GeneratedQuestion(
+        question_type="all_target_children_given_at_least_one",
+        topic="probability",
+        subtopic="bayes",
+        prompt=(
+            f"There is a family with {children} children. Given that at least one child is a {target_gender}, "
+            f"what is the probability that all {children} children are {target_gender}s? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "List or count all equally likely gender outcomes. "
+            f"Remove the one case with no {target_gender}s. "
+            f"Among the remaining cases, only one has all {children} children as {target_gender}s."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "children": children,
+            "target_gender": target_gender,
+            "conditional_outcomes": 2**children - 1,
+            "favorable_outcomes": 1,
+            "fraction": str(answer),
+        },
+    )
+
+
+def double_headed_coin_given_heads(rng: random.Random) -> GeneratedQuestion:
+    fair_coins = rng.randint(4, 24)
+    double_headed_coins = rng.randint(1, 4)
+    double_tailed_coins = rng.randint(1, 4)
+    favorable_head_sides = 2 * double_headed_coins
+    total_head_sides = fair_coins + 2 * double_headed_coins
+    answer = Fraction(favorable_head_sides, total_head_sides)
+    return GeneratedQuestion(
+        question_type="double_headed_coin_given_heads",
+        topic="probability",
+        subtopic="bayes",
+        prompt=(
+            f"An urn has {fair_coins} fair coins, {double_headed_coins} coins with both sides heads, "
+            f"and {double_tailed_coins} coins with both sides tails. You pick a coin at random and flip it. "
+            "Given that you see heads, what is the probability that you picked a coin with both sides heads? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "Count head-producing sides. Each fair coin contributes 1 head side, "
+            "each double-headed coin contributes 2, and double-tailed coins contribute 0. "
+            "Then take the fraction coming from double-headed coins."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "fair_coins": fair_coins,
+            "double_headed_coins": double_headed_coins,
+            "double_tailed_coins": double_tailed_coins,
+            "favorable_head_sides": favorable_head_sides,
+            "total_head_sides": total_head_sides,
+            "fraction": str(answer),
+        },
+    )
+
+
+def painted_cube_hidden_red_given_visible_white(rng: random.Random) -> GeneratedQuestion:
+    side_length = rng.randint(3, 6)
+    interior_cubes = (side_length - 2) ** 3
+    one_red_face_cubes = 6 * (side_length - 2) ** 2
+    favorable_orientations = one_red_face_cubes
+    total_consistent_orientations = one_red_face_cubes + 6 * interior_cubes
+    answer = Fraction(favorable_orientations, total_consistent_orientations)
+    return GeneratedQuestion(
+        question_type="painted_cube_hidden_red_given_visible_white",
+        topic="probability",
+        subtopic="bayes",
+        prompt=(
+            f"There is a {side_length}x{side_length}x{side_length} cube whose outer surface is painted red "
+            "and all inner faces are white. One of the component 1x1 cubes is selected at random and thrown on a table. "
+            "Given that all visible faces are white, what is the probability that the bottom face is red? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "Only two cube types can show all visible faces white: a completely interior cube, "
+            "or a surface-center cube with exactly one red face placed face-down. "
+            "Count the valid orientations of each type and form the conditional fraction."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "side_length": side_length,
+            "interior_cubes": interior_cubes,
+            "one_red_face_cubes": one_red_face_cubes,
+            "favorable_orientations": favorable_orientations,
+            "total_consistent_orientations": total_consistent_orientations,
+            "fraction": str(answer),
+        },
+    )
+
+
+def pocket_queens(rng: random.Random) -> GeneratedQuestion:
+    rank_name = "queens"
+    hand_size = rng.randint(3, 7)
+    target_count = rng.randint(1, min(4, hand_size - 1))
+    favorable_hands = math.comb(4, target_count) * math.comb(48, hand_size - target_count)
+    total_hands = math.comb(52, hand_size)
+    answer = Fraction(favorable_hands, total_hands)
+    return GeneratedQuestion(
+        question_type="pocket_queens",
+        topic="probability",
+        subtopic="combinations",
+        prompt=(
+            f"What is the probability of getting exactly {target_count} {rank_name} "
+            f"in a {hand_size}-card hand from a standard 52-card deck? Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "First choose the target rank cards you want in the hand. "
+            "Then choose the rest of the hand from the non-target cards. "
+            "Put that favorable count over the number of all possible hands."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "rank_name": rank_name,
+            "hand_size": hand_size,
+            "target_count": target_count,
+            "favorable_hands": favorable_hands,
+            "total_hands": total_hands,
+            "fraction": str(answer),
+        },
+    )
+
+
+def one_of_each_rank_before_ace_of_diamonds(rng: random.Random) -> GeneratedQuestion:
+    required_ranks = rng.sample(["king", "queen", "jack"], k=rng.randint(2, 3))
+    relevant_non_ace_cards = 4 * len(required_ranks)
+    probability = Fraction(1, 1)
+
+    for seen_rank_count in range(len(required_ranks)):
+        unseen_rank_count = len(required_ranks) - seen_rank_count
+        favorable_choices = 4 * unseen_rank_count
+        remaining_relevant_cards = relevant_non_ace_cards + 1 - seen_rank_count
+        probability *= Fraction(favorable_choices, remaining_relevant_cards)
+
+    probability *= Fraction(1, relevant_non_ace_cards + 1 - len(required_ranks))
+
+    rank_labels = [f"{rank}" for rank in required_ranks]
+    if len(rank_labels) == 2:
+        requirement_text = " and ".join(f"one {label}" for label in rank_labels)
+    else:
+        requirement_text = ", ".join(f"one {label}" for label in rank_labels[:-1])
+        requirement_text += f", and one {rank_labels[-1]}"
+
+    return GeneratedQuestion(
+        question_type="one_of_each_rank_before_ace_of_diamonds",
+        topic="probability",
+        subtopic="combinations",
+        prompt=(
+            "Cards are dealt from a randomly shuffled 52-card deck until the ace of diamonds appears. "
+            f"What is the probability that exactly {requirement_text} appear before the ace of diamonds? "
+            "Give a simplified fraction."
+        ),
+        answer=str(probability),
+        answer_display=str(probability),
+        hint=(
+            "Ignore all irrelevant cards. Only the relative order of the chosen ranks and the ace of diamonds matters. "
+            "Work in the reduced deck, hit one unseen required rank at each step, then hit the ace next."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "required_ranks": required_ranks,
+            "relevant_non_ace_cards": relevant_non_ace_cards,
+            "fraction": str(probability),
+        },
+    )
+
+
+def die_higher_wins_expected_value(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(4, 10)
+    win_amount = rng.choice([1, 2, 3, 5])
+    winning_outcomes = sides * (sides - 1) // 2
+    total_outcomes = sides * sides
+    expectation = Fraction(win_amount * winning_outcomes, total_outcomes)
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="die_higher_wins_expected_value",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You and your opponent each roll a fair {sides}-sided die. "
+            f"If you get a larger number, you win ${win_amount}. Otherwise, you get $0. "
+            f"What is your expected winning? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Use the law of total expectation. You only get paid when your roll is larger. "
+            "Count the winning ordered pairs, divide by all ordered pairs, then multiply by the payout."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "win_amount": win_amount,
+            "winning_outcomes": winning_outcomes,
+            "total_outcomes": total_outcomes,
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def expected_rolls_until_target_face(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(4, 12)
+    target_face = rng.randint(1, sides)
+    expectation = Fraction(sides, 1)
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="expected_rolls_until_target_face",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You roll a fair {sides}-sided die until a {target_face} comes up. "
+            f"What is the expected number of rolls? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Use the recursive expectation setup: either you hit the target on the next roll, "
+            "or you spend one roll and the problem resets. This gives E = 1/p for success probability p."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "target_face": target_face,
+            "success_probability": f"1/{sides}",
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def expected_rolls_to_see_all_faces(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(3, 6)
+    expectation = sum(Fraction(sides, unseen) for unseen in range(sides, 0, -1))
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="expected_rolls_to_see_all_faces",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"What is the expected number of rolls of a fair {sides}-sided die until you have seen every face at least once? "
+            f"{answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Break the process into stages: waiting for the 1st new face, 2nd new face, ..., last new face. "
+            "At each stage, the waiting time is 1 divided by the probability of rolling a new face."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "incremental_expectations": [str(Fraction(sides, unseen)) for unseen in range(sides, 0, -1)],
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def expected_days_until_bad_returns(rng: random.Random) -> GeneratedQuestion:
+    p_good_to_good = rng.choice([Fraction(1, 5), Fraction(2, 5), Fraction(1, 2), Fraction(3, 5)])
+    p_bad_to_good = rng.choice([Fraction(1, 5), Fraction(1, 4), Fraction(1, 3), Fraction(2, 5)])
+    p_good_to_bad = 1 - p_good_to_good
+    p_bad_to_bad = 1 - p_bad_to_good
+
+    expectation_from_good = Fraction(1, p_good_to_bad)
+    expectation_from_bad = 1 + p_bad_to_good * expectation_from_good
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(
+        expectation_from_bad
+    )
+    return GeneratedQuestion(
+        question_type="expected_days_until_bad_returns",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"If it is a good day (G), there is a {p_good_to_good} chance tomorrow is G and a {p_good_to_bad} chance tomorrow is bad (B). "
+            f"If it is a bad day (B), there is a {p_bad_to_good} chance tomorrow is G and a {p_bad_to_bad} chance tomorrow is B. "
+            f"If today is B, what is the expected number of days before seeing another B? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Write two recursive expectations: one starting from B and one from G. "
+            "From G, either B arrives tomorrow or you spend one day and stay in the G-state recursion. "
+            "Then plug the G result into the B equation."
+        ),
+        grading=grading,
+        metadata={
+            "p_good_to_good": str(p_good_to_good),
+            "p_good_to_bad": str(p_good_to_bad),
+            "p_bad_to_good": str(p_bad_to_good),
+            "p_bad_to_bad": str(p_bad_to_bad),
+            "expectation_from_good": str(expectation_from_good),
+            "fraction": str(expectation_from_bad),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def expected_flips_for_consecutive_heads(rng: random.Random) -> GeneratedQuestion:
+    streak = rng.randint(2, 4)
+    size = streak
+    matrix: list[list[Fraction]] = []
+    vector: list[Fraction] = []
+    for state in range(size):
+        row = [Fraction(0) for _ in range(size)]
+        row[state] = Fraction(1)
+        row[0] -= Fraction(1, 2)
+        if state + 1 < streak:
+            row[state + 1] -= Fraction(1, 2)
+        vector.append(Fraction(1))
+        matrix.append(row)
+
+    expectations = solve_linear_system(matrix, vector)
+    expectation = expectations[0]
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="expected_flips_for_consecutive_heads",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You flip a fair coin until you get {streak} consecutive heads. "
+            f"What is the expected number of flips? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Define states by your current run of consecutive heads: 0, 1, ..., n-1. "
+            "Write a recursion for each state. A head moves you forward one state, and a tail resets you to 0."
+        ),
+        grading=grading,
+        metadata={
+            "streak": streak,
+            "state_expectations": [str(value) for value in expectations],
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def expected_draws_until_all_balls_same_color(rng: random.Random) -> GeneratedQuestion:
+    balls_per_color = rng.randint(2, 4)
+    total_balls = 2 * balls_per_color
+    transient_states = list(range(1, total_balls))
+    state_to_index = {state: index for index, state in enumerate(transient_states)}
+    matrix: list[list[Fraction]] = []
+    vector: list[Fraction] = []
+
+    for red_count in transient_states:
+        black_count = total_balls - red_count
+        p_shift = Fraction(red_count * black_count, total_balls * (total_balls - 1))
+        p_same = Fraction(
+            red_count * (red_count - 1) + black_count * (black_count - 1),
+            total_balls * (total_balls - 1),
+        )
+
+        row = [Fraction(0) for _ in transient_states]
+        row[state_to_index[red_count]] = 1 - p_same
+        if red_count + 1 < total_balls:
+            row[state_to_index[red_count + 1]] -= p_shift
+        if red_count - 1 > 0:
+            row[state_to_index[red_count - 1]] -= p_shift
+        matrix.append(row)
+        vector.append(Fraction(1))
+
+    expectations = solve_linear_system(matrix, vector)
+    expectation = expectations[state_to_index[balls_per_color]]
+    answer = format_fraction_as_decimal(expectation)
+    return GeneratedQuestion(
+        question_type="expected_draws_until_all_balls_same_color",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"There are {balls_per_color} red balls and {balls_per_color} black balls in a bag. "
+            "Randomly pick 2 balls without replacement, then repaint the second ball to the color of the first. "
+            "What is the expected number of draws until all balls have the same color? Give a decimal answer."
+        ),
+        answer=answer,
+        answer_display=f"{answer} (exactly {expectation})",
+        hint=(
+            "Track the state by how many red balls are in the bag. "
+            "A mixed-color draw changes the red count by 1, while a same-color draw leaves the state unchanged. "
+            "Write the recursion for the balanced state and its neighbors."
+        ),
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={
+            "balls_per_color": balls_per_color,
+            "total_balls": total_balls,
+            "state_expectations": {
+                str(state): str(expectations[state_to_index[state]]) for state in transient_states
+            },
+            "fraction": str(expectation),
+            "answer_format": "numeric",
+        },
+    )
+
+
+def fair_die_variance(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(4, 12)
+    mean = Fraction(sides + 1, 2)
+    second_moment = Fraction(sum(face * face for face in range(1, sides + 1)), sides)
+    variance = second_moment - mean * mean
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(variance)
+    return GeneratedQuestion(
+        question_type="fair_die_variance",
+        topic="probability",
+        subtopic="variance",
+        prompt=f"What is the variance of a fair {sides}-sided die roll? {answer_instruction}",
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Use Var(X) = E(X^2) - E(X)^2. "
+            "Compute the average of the face values and the average of the squared face values."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "mean": str(mean),
+            "second_moment": str(second_moment),
+            "fraction": str(variance),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def scaled_die_variance(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(4, 10)
+    scale = rng.choice([2, 3, 4, 5])
+    base_variance = Fraction(sides * sides - 1, 12)
+    variance = scale * scale * base_variance
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(variance)
+    return GeneratedQuestion(
+        question_type="scaled_die_variance",
+        topic="probability",
+        subtopic="variance",
+        prompt=(
+            f"Let X be the result of a fair {sides}-sided die roll. "
+            f"What is Var({scale}X)? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "First find Var(X) for the fair die, then use the scaling rule Var(cX) = c^2 Var(X)."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "scale": scale,
+            "base_variance": str(base_variance),
+            "fraction": str(variance),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def sample_variance_from_dataset(rng: random.Random) -> GeneratedQuestion:
+    center = rng.randint(5, 20)
+    offset_a = rng.randint(1, 4)
+    offset_b = rng.randint(offset_a, 5)
+    values = [center - offset_b, center - offset_a, center + offset_a, center + offset_b]
+    mean = Fraction(sum(values), len(values))
+    sum_squared_deviations = sum((Fraction(value) - mean) ** 2 for value in values)
+    sample_variance = sum_squared_deviations / (len(values) - 1)
+    values_text = ", ".join(str(value) for value in values)
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(
+        sample_variance
+    )
+    return GeneratedQuestion(
+        question_type="sample_variance_from_dataset",
+        topic="probability",
+        subtopic="variance",
+        prompt=(
+            f"What is the sample variance of the data set {values_text}? "
+            f"{answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Use s^2 = (1/(n-1)) * sum((x_i - x_bar)^2). "
+            "First compute the sample mean. Then find each squared deviation from the mean, "
+            "add them up, and divide by n - 1."
+        ),
+        grading=grading,
+        metadata={
+            "values": values,
+            "mean": str(mean),
+            "sum_squared_deviations": str(sum_squared_deviations),
+            "fraction": str(sample_variance),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def doubled_suit_card_expected_value(rng: random.Random) -> GeneratedQuestion:
+    suit = rng.choice(["hearts", "spades", "clubs", "diamonds"])
+    multiplier = rng.choice([2, 3, 4])
+    base_average = Fraction(1 + 13, 2)
+    expectation = base_average * Fraction(3 + multiplier, 4)
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="doubled_suit_card_expected_value",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You draw one card from a standard deck, with A=1, J=11, Q=12, K=13. "
+            f"For {suit}, all card values are multiplied by {multiplier}. "
+            f"What is the expected value of the card? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Condition on whether the card is in the special suit. "
+            "The average card value in any suit is the same, so multiply that average for the special suit, "
+            "then take the weighted average with probability 1/4 versus 3/4."
+        ),
+        grading=grading,
+        metadata={
+            "suit": suit,
+            "multiplier": multiplier,
+            "base_average": str(base_average),
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
+    )
+
+
+def three_dice_match_expected_value(rng: random.Random) -> GeneratedQuestion:
+    sides = rng.randint(4, 8)
+    triple_payout = rng.choice([8, 10, 12])
+    pair_payout = rng.choice([3, 4, 5])
+    all_different_loss = rng.choice([1, 2])
+
+    triple_outcomes = sides
+    pair_outcomes = 3 * sides * (sides - 1)
+    all_different_outcomes = sides * (sides - 1) * (sides - 2)
+    total_outcomes = sides**3
+    expectation = Fraction(
+        triple_outcomes * triple_payout
+        + pair_outcomes * pair_payout
+        - all_different_outcomes * all_different_loss,
+        total_outcomes,
+    )
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    return GeneratedQuestion(
+        question_type="three_dice_match_expected_value",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You roll 3 fair {sides}-sided dice. If all three match, you win ${triple_payout}. "
+            f"If exactly two match, you win ${pair_payout}. If all three are different, you lose ${all_different_loss}. "
+            f"What is your expected winning? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            "Split into three disjoint cases: all three same, exactly two same, and all different. "
+            "Count each case, multiply by its payout, then divide by the total number of ordered outcomes."
+        ),
+        grading=grading,
+        metadata={
+            "sides": sides,
+            "triple_payout": triple_payout,
+            "pair_payout": pair_payout,
+            "all_different_loss": all_different_loss,
+            "triple_outcomes": triple_outcomes,
+            "pair_outcomes": pair_outcomes,
+            "all_different_outcomes": all_different_outcomes,
+            "total_outcomes": total_outcomes,
+            "fraction": str(expectation),
+            "answer_format": grading.kind,
+        },
     )
 
 
 def torpedoes_destroy_ship(rng: random.Random) -> GeneratedQuestion:
-    hit_probability = Fraction(1, 3)
-    torpedoes = rng.choice([2, 3, 4])
+    hit_probability = rng.choice(
+        [
+            Fraction(1, 5),
+            Fraction(1, 4),
+            Fraction(1, 3),
+            Fraction(2, 5),
+            Fraction(1, 2),
+            Fraction(3, 5),
+        ]
+    )
+    torpedoes = rng.randint(2, 5)
     destroyed = 1 - (1 - hit_probability) ** torpedoes
     answer = f"{destroyed.numerator}/{destroyed.denominator}"
+
     return GeneratedQuestion(
         question_type="torpedoes_destroy_ship",
         topic="probability",
-        prompt=f"A torpedo hits with probability 1/3 and destroys the ship if it hits. {torpedoes} torpedoes are fired independently. What is the probability the ship is destroyed? Give a simplified fraction.",
+        subtopic="probability-rules",
+        prompt=(
+            f"A torpedo hits with probability {hit_probability} and destroys the ship if it hits. "
+            f"{torpedoes} torpedoes are fired independently. What is the probability the ship is destroyed? "
+            "Give a simplified fraction."
+        ),
         answer=answer,
         answer_display=answer,
-        hint="Compute the complement: ship survives only if every torpedo misses.",
+        hint=(
+            "Use the complement. First find the probability one torpedo misses, "
+            "raise that to the number of torpedoes to get the probability all miss, "
+            "then subtract from 1."
+        ),
         grading=GradingSpec.fraction(),
-        metadata={"hit_probability": "1/3", "torpedoes": torpedoes},
+        metadata={
+            "hit_probability": str(hit_probability),
+            "miss_probability": str(1 - hit_probability),
+            "torpedoes": torpedoes,
+            "fraction": answer,
+        },
     )
 
 
 GENERATORS = [
     even_or_prime_die_roll,
-    equal_heads_three_flips,
+    equal_heads_n_flips,
+    all_target_children_given_at_least_one,
+    double_headed_coin_given_heads,
+    painted_cube_hidden_red_given_visible_white,
+    pocket_queens,
+    one_of_each_rank_before_ace_of_diamonds,
+    die_higher_wins_expected_value,
+    expected_rolls_until_target_face,
+    expected_rolls_to_see_all_faces,
+    expected_days_until_bad_returns,
+    expected_flips_for_consecutive_heads,
+    expected_draws_until_all_balls_same_color,
+    fair_die_variance,
+    scaled_die_variance,
+    sample_variance_from_dataset,
+    doubled_suit_card_expected_value,
+    three_dice_match_expected_value,
     torpedoes_destroy_ship,
 ]
