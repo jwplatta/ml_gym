@@ -10,6 +10,7 @@ def sum_odd_nums_up_to_n(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="sum_odd_nums_up_to_n",
         topic="probability",
+        subtopic="consecutive-sums",
         prompt=f"What is the sum of all odd numbers from 1 up to {limit}?",
         answer=str(answer),
         answer_display=str(answer),
@@ -27,6 +28,7 @@ def sum_of_nums_from_x_to_y(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="sum_of_nums_from_x_to_y",
         topic="probability",
+        subtopic="consecutive-sums",
         prompt=f"What is the sum of all integers from {start} to {stop} inclusive?",
         answer=str(answer),
         answer_display=str(answer),
