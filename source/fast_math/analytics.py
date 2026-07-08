@@ -66,12 +66,12 @@ def daily_question_counts(history: list[dict]) -> pd.DataFrame:
 def daily_question_counts_by_type(history: list[dict]) -> pd.DataFrame:
     attempts = build_attempts_dataframe(history)
     if attempts.empty:
-        return pd.DataFrame(columns=["date", "question_type", "questions_completed"])
+        return pd.DataFrame(columns=["date", "topic", "questions_completed"])
     daily = (
-        attempts.groupby(["date", "question_type"])
+        attempts.groupby(["date", "topic"])
         .size()
         .reset_index(name="questions_completed")
-        .sort_values(["date", "question_type"])
+        .sort_values(["date", "topic"])
     )
     return daily
 
@@ -90,6 +90,33 @@ def accuracy_by_field(history: list[dict], field: str) -> pd.DataFrame:
         .sort_values(["accuracy_pct", "questions_answered"], ascending=[False, False])
     )
     return summary
+
+
+def question_type_stats(history: list[dict]) -> dict[str, dict]:
+    attempts = build_attempts_dataframe(history)
+    if attempts.empty:
+        return {}
+    return (
+        attempts.groupby("question_type")
+        .agg(seen=("is_correct", "size"), accuracy=("is_correct", "mean"))
+        .to_dict("index")
+    )
+
+
+def score_distribution(history: list[dict]) -> pd.DataFrame:
+    """Returns one row per quiz with score_pct and topic (all selected topics joined)."""
+    if not history:
+        return pd.DataFrame(columns=["score_pct", "topic"])
+    rows = []
+    for quiz in history:
+        topics = sorted({q["topic"] for q in quiz.get("questions", [])})
+        rows.append(
+            {
+                "score_pct": float(quiz["score_pct"]),
+                "topic": ", ".join(topics) if topics else "unknown",
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def score_trend(history: list[dict]) -> pd.DataFrame:
