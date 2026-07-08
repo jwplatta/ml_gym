@@ -749,6 +749,144 @@ def torpedoes_destroy_ship(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def shared_birthday_period(rng: random.Random) -> GeneratedQuestion:
+    period, label, unit = rng.choice([
+        (7, "day of the week", "days in a week"),
+        (365, "day of the year", "days in a year"),
+        (12, "month of the year", "months in a year"),
+    ])
+    people = rng.randint(2, 5)
+    answer = Fraction(1, period ** (people - 1))
+    people_str = {2: "two", 3: "three", 4: "four", 5: "five"}[people]
+    return GeneratedQuestion(
+        question_type="shared_birthday_period",
+        topic="probability",
+        subtopic="probability-rules",
+        prompt=(
+            f"What is the probability that {people_str} people are all born on the same {label}? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            f"Two equivalent approaches. "
+            f"(1) Sum over all {period} {unit}: probability all share a specific {label} is (1/{period})^{people}, "
+            f"and there are {period} mutually exclusive choices, so {period} * (1/{period})^{people} = 1/{period}^{people - 1}. "
+            f"(2) Fix the first person's {label} — it can be anything. "
+            f"Each of the remaining {people - 1} people must independently match it, "
+            f"each with probability 1/{period}. Multiply: (1/{period})^{people - 1}."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "period": period,
+            "label": label,
+            "people": people,
+            "fraction": str(answer),
+        },
+    )
+
+
+def circular_age_order(rng: random.Random) -> GeneratedQuestion:
+    n = rng.randint(3, 10)
+    total = math.factorial(n - 1)
+    answer = Fraction(2, total)
+    return GeneratedQuestion(
+        question_type="circular_age_order",
+        topic="probability",
+        subtopic="combinations",
+        prompt=(
+            f"{n} people with distinct ages sit randomly at a round table. "
+            "What is the probability they are seated in either ascending or descending order of age "
+            "(clockwise)? Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            f"Round table arrangements: fix one person's seat to remove rotational duplicates, "
+            f"giving (N-1)! = {total} equally likely orderings. "
+            "Only 2 of these are fully sorted by age: one clockwise ascending, one clockwise descending. "
+            f"P = 2 / (N-1)! = 2/{total}."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "n": n,
+            "total_arrangements": total,
+            "fraction": str(answer),
+        },
+    )
+
+
+def tournament_top_two_meet_in_round(rng: random.Random) -> GeneratedQuestion:
+    exponent = rng.randint(3, 7)  # 8 to 128 players
+    n = 2 ** exponent
+    round_number = rng.randint(1, exponent)
+    group_size = 2 ** round_number
+    answer = Fraction(group_size // 2, n - 1)
+    round_names = {1: "the first round", exponent: "the final"}
+    round_label = round_names.get(round_number, f"round {round_number}")
+    return GeneratedQuestion(
+        question_type="tournament_top_two_meet_in_round",
+        topic="probability",
+        subtopic="combinations",
+        prompt=(
+            f"A single-elimination tennis tournament has {n} players. "
+            "Each player has a unique rating and the higher-rated player always wins. "
+            f"What is the probability that the two highest-rated players meet in {round_label}? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "For two players to meet in exactly round r, they must be placed in the same group of size 2^r "
+            "but in different halves of that group (each of size 2^(r-1)). "
+            "Fix player 1's position. Player 2 must land in one of the 2^(r-1) slots in the other half of that group, "
+            "out of n-1 remaining slots total. P = 2^(r-1) / (n-1)."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "n": n,
+            "round_number": round_number,
+            "group_size": group_size,
+            "fraction": str(answer),
+        },
+    )
+
+
+def tournament_one_and_three_meet_in_final(rng: random.Random) -> GeneratedQuestion:
+    exponent = rng.randint(3, 7)  # 8 to 128 players
+    n = 2 ** exponent
+    half = n // 2
+    p2_same = Fraction(half - 1, n - 1)
+    p3_other = Fraction(half, n - 2)
+    answer = p2_same * p3_other
+    return GeneratedQuestion(
+        question_type="tournament_one_and_three_meet_in_final",
+        topic="probability",
+        subtopic="combinations",
+        prompt=(
+            f"A single-elimination tennis tournament has {n} players. "
+            "Each player has a unique rating and the higher-rated player always wins. "
+            "What is the probability that the highest-rated and third-highest-rated players meet in the final? "
+            "Give a simplified fraction."
+        ),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=(
+            "For players 1 and 3 to meet in the final they must be in opposite halves of the bracket, "
+            "and player 2 must be in the same half as player 1 (otherwise player 3 gets eliminated by player 2). "
+            "Multiply: P(player 2 in player 1's half) * P(player 3 in the other half | that)."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={
+            "n": n,
+            "half": half,
+            "p2_same_bracket": str(p2_same),
+            "p3_other_bracket": str(p3_other),
+            "fraction": str(answer),
+        },
+    )
+
+
 GENERATORS = [
     even_or_prime_die_roll,
     equal_heads_n_flips,
@@ -769,4 +907,8 @@ GENERATORS = [
     doubled_suit_card_expected_value,
     three_dice_match_expected_value,
     torpedoes_destroy_ship,
+    shared_birthday_period,
+    circular_age_order,
+    tournament_top_two_meet_in_round,
+    tournament_one_and_three_meet_in_final,
 ]
