@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from time import monotonic
 from uuid import uuid4
 
+from source.fast_math.analytics import question_type_stats
 from source.fast_math.grading import is_correct_answer
 from source.fast_math.models import GeneratedQuestion, QuestionAttempt, QuizAttemptRecord, utc_now_iso
 from source.fast_math.registry import generators_by_topic
@@ -45,6 +46,9 @@ def build_quiz(
     question_count: int,
     hints_enabled: bool,
     seed: int | None = None,
+    history: list[dict] | None = None,
+    use_weights: bool = False,
+    allow_type_repeats: bool = False,
 ) -> ActiveQuiz:
     topic_map = generators_by_topic()
     generators = [generator for topic in selected_topics for generator in topic_map.get(topic, [])]
@@ -52,7 +56,38 @@ def build_quiz(
         raise ValueError("No question generators available for the selected topics.")
 
     rng = random.Random(seed)
-    questions = [rng.choice(generators)(rng) for _ in range(question_count)]
+
+    questions = []
+    used_types: set[str] = set()
+    available = list(generators)
+
+    if use_weights and history:
+        stats = question_type_stats(history)
+    else:
+        stats = {}
+
+    while len(questions) < question_count:
+        if not available:
+            available = list(generators)
+            used_types.clear()
+
+        if stats:
+            weights = []
+            for gen in available:
+                qt = gen(random.Random(0)).question_type
+                s = stats.get(qt, {"seen": 0, "accuracy": 0.5})
+                weights.append(1 / (s["seen"] + 1) + (1 - s["accuracy"]))
+            gen = rng.choices(available, weights=weights, k=1)[0]
+        else:
+            gen = rng.choice(available)
+
+        question = gen(rng)
+        questions.append(question)
+
+        if not allow_type_repeats:
+            qt = question.question_type
+            used_types.add(qt)
+            available = [g for g in generators if g(random.Random(0)).question_type not in used_types]
     return ActiveQuiz(
         quiz_id=str(uuid4()),
         started_at=utc_now_iso(),

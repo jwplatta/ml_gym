@@ -4,9 +4,8 @@ import plotly.express as px
 import streamlit as st
 
 from source.fast_math.analytics import (
-    accuracy_by_field,
     daily_question_counts_by_type,
-    score_trend,
+    score_distribution,
     summarize_history,
 )
 from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_answer
@@ -19,8 +18,16 @@ def run() -> None:
     initialize_state()
 
     st.title("Fast Math")
-    pages = ["Dashboard", "New Quiz", "Quiz"]
-    page = st.sidebar.radio("Navigate", pages, key="nav_page")
+
+    with st.sidebar:
+        if st.button("Dashboard", use_container_width=True):
+            st.session_state._nav_page = "Dashboard"
+        if st.button("New Quiz", use_container_width=True):
+            st.session_state._nav_page = "New Quiz"
+        if st.button("Quiz", use_container_width=True):
+            st.session_state._nav_page = "Quiz"
+
+    page = st.session_state._nav_page
 
     if page == "Dashboard":
         render_dashboard()
@@ -35,7 +42,7 @@ def initialize_state() -> None:
     st.session_state.setdefault("last_feedback", None)
     st.session_state.setdefault("completed_quiz_id", None)
     st.session_state.setdefault("completed_quiz_record", None)
-    st.session_state.setdefault("nav_page", "Dashboard")
+    st.session_state.setdefault("_nav_page", "Dashboard")
 
 
 def render_dashboard() -> None:
@@ -58,52 +65,43 @@ def render_dashboard() -> None:
         daily_df,
         x="date",
         y="questions_completed",
-        color="question_type",
+        color="topic",
         title="Questions Answered Per Day",
     )
     activity_chart.update_layout(
         xaxis_title="Date",
         yaxis_title="Questions Answered",
         barmode="stack",
-        margin=dict(l=20, r=20, t=40, b=20),
+        margin={"l": 20, "r": 20, "t": 40, "b": 20},
     )
     activity_chart.update_xaxes(type="category")
     st.plotly_chart(activity_chart, use_container_width=True)
 
     left, right = st.columns(2)
 
-    score_df = score_trend(history)
-    score_chart = px.line(
-        score_df,
-        x="completed_at",
-        y="score_pct",
-        markers=True,
-        title="Quiz Accuracy Over Time",
+    dist_df = score_distribution(history)
+    dist_chart = px.histogram(
+        dist_df,
+        x="score_pct",
+        title="Quiz Score Distribution (All Topics)",
+        range_x=[0, 105],
     )
-    score_chart.update_layout(yaxis_title="Score %", xaxis_title="Completed At")
-    left.plotly_chart(score_chart, use_container_width=True)
+    dist_chart.update_traces(xbins={"start": 0, "end": 105, "size": 5})
+    dist_chart.update_layout(xaxis_title="Score %", yaxis_title="Quizzes")
+    left.plotly_chart(dist_chart, use_container_width=True)
 
-    topic_df = accuracy_by_field(history, "topic")
-    topic_chart = px.bar(
-        topic_df,
-        x="topic",
-        y="accuracy_pct",
-        text="questions_answered",
-        title="Accuracy by Topic",
+    topic_dist_chart = px.histogram(
+        dist_df,
+        x="score_pct",
+        color="topic",
+        barmode="overlay",
+        opacity=0.7,
+        title="Quiz Score Distribution by Topic",
+        range_x=[0, 105],
     )
-    topic_chart.update_layout(yaxis_title="Accuracy %", xaxis_title="Topic")
-    right.plotly_chart(topic_chart, use_container_width=True)
-
-    question_type_df = accuracy_by_field(history, "question_type")
-    question_type_chart = px.bar(
-        question_type_df,
-        x="question_type",
-        y="accuracy_pct",
-        text="questions_answered",
-        title="Accuracy by Question Type",
-    )
-    question_type_chart.update_layout(yaxis_title="Accuracy %", xaxis_title="Question Type")
-    st.plotly_chart(question_type_chart, use_container_width=True)
+    topic_dist_chart.update_traces(xbins={"start": 0, "end": 105, "size": 5})
+    topic_dist_chart.update_layout(xaxis_title="Score %", yaxis_title="Quizzes")
+    right.plotly_chart(topic_dist_chart, use_container_width=True)
 
 
 def render_new_quiz() -> None:
@@ -117,6 +115,8 @@ def render_new_quiz() -> None:
         selected_topics = st.multiselect("Topics", topics, default=topics)
         question_count = st.slider("Number of questions", min_value=1, max_value=25, value=5)
         hints_enabled = st.checkbox("Show hints", value=True)
+        use_weights = st.checkbox("Prioritize weak/unseen question types", value=True)
+        allow_type_repeats = st.checkbox("Allow repeated question types", value=False)
         submitted = st.form_submit_button("Generate Quiz")
 
     if submitted:
@@ -127,11 +127,14 @@ def render_new_quiz() -> None:
             selected_topics=selected_topics,
             question_count=question_count,
             hints_enabled=hints_enabled,
+            history=load_quiz_history(),
+            use_weights=use_weights,
+            allow_type_repeats=allow_type_repeats,
         )
         st.session_state.last_feedback = None
         st.session_state.completed_quiz_id = None
         st.session_state.completed_quiz_record = None
-        st.session_state.nav_page = "Quiz"
+        st.session_state._nav_page = "Quiz"
         st.rerun()
 
 
@@ -150,7 +153,7 @@ def render_take_quiz() -> None:
     st.caption(
         f"Question {active_quiz.current_index + 1} of {active_quiz.requested_question_count} | Topics: {', '.join(active_quiz.selected_topics)}"
     )
-    st.markdown(f"### {question.prompt}")
+    st.markdown(f"> {question.prompt}")
     if active_quiz.hints_enabled and question.hint:
         st.info(question.hint)
 
