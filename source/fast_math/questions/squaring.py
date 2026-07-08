@@ -62,7 +62,7 @@ def power_of_two(rng: random.Random) -> GeneratedQuestion:
         prompt=f"2^{exponent} =",
         answer=str(answer),
         answer_display=str(answer),
-        hint="Build from repeated doubling.",
+        hint="Memorize.",
         grading=GradingSpec.numeric(),
         metadata={"base": 2, "exponent": exponent},
     )
@@ -87,10 +87,29 @@ def fast_two_digits(rng: random.Random) -> GeneratedQuestion:
         metadata={"base": num, "exponent": 2},
     )
 
+_MEMORIZED_SQUARES = [n for n in range(11, 32) if n % 10 != 0]
+
+
+def memorized_squares(rng: random.Random) -> GeneratedQuestion:
+    value = rng.choice(_MEMORIZED_SQUARES)
+    answer = value * value
+    return GeneratedQuestion(
+        question_type="memorized_squares",
+        topic="squaring",
+        prompt=f"{value}^2 =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Memorize.",
+        grading=GradingSpec.numeric(),
+        metadata={"value": value},
+    )
+
+
 GENERATORS = [
     square_n_nearest_tens,
     two_digit_fives,
     nearest_fives,
     power_of_two,
-    fast_two_digits
+    fast_two_digits,
+    memorized_squares,
 ]
