@@ -64,8 +64,9 @@ def fast_mult_by_125(rng: random.Random) -> GeneratedQuestion:
 
 
 def flip_percent(rng: random.Random) -> GeneratedQuestion:
-    percent = rng.choice([5, 10, 12, 15, 18, 20, 25, 30, 40, 45, 60, 75])
-    base = rng.randint(12, 240)
+    # base must be small so that "base% of percent" is easy mental math
+    base = rng.choice([2, 4, 5, 8, 16, 20, 25, 40, 50])
+    percent = rng.choice([p for p in [24, 32, 36, 48, 64, 72, 96, 120, 144, 200, 250] if p > base])
     answer = percent * base / 100
     prompt = f"{percent}% of {base} ="
     hint = "Flip it: x% of y equals y% of x."
