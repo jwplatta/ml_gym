@@ -54,7 +54,7 @@ def nearest_fives(rng: random.Random) -> GeneratedQuestion:
 
 
 def power_of_two(rng: random.Random) -> GeneratedQuestion:
-    exponent = rng.randint(5, 12)
+    exponent = rng.randint(1, 10)
     answer = 2**exponent
     return GeneratedQuestion(
         question_type="power_of_two",

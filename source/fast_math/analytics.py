@@ -92,6 +92,20 @@ def accuracy_by_field(history: list[dict], field: str) -> pd.DataFrame:
     return summary
 
 
+def slowest_question_types(history: list[dict], n: int = 5) -> pd.DataFrame:
+    attempts = build_attempts_dataframe(history)
+    if attempts.empty:
+        return pd.DataFrame(columns=["question_type", "avg_seconds"])
+    return (
+        attempts.groupby("question_type")
+        .agg(avg_seconds=("response_time_seconds", "mean"), count=("response_time_seconds", "size"))
+        .reset_index()
+        .query("count > 2")
+        .sort_values("avg_seconds", ascending=False)
+        .head(n)
+    )
+
+
 def question_type_stats(history: list[dict]) -> dict[str, dict]:
     attempts = build_attempts_dataframe(history)
     if attempts.empty:

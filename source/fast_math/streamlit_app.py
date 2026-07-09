@@ -6,6 +6,7 @@ import streamlit as st
 from source.fast_math.analytics import (
     daily_question_counts_by_type,
     score_distribution,
+    slowest_question_types,
     summarize_history,
 )
 from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_answer
@@ -102,6 +103,25 @@ def render_dashboard() -> None:
     topic_dist_chart.update_traces(xbins={"start": 0, "end": 105, "size": 5})
     topic_dist_chart.update_layout(xaxis_title="Score %", yaxis_title="Quizzes")
     right.plotly_chart(topic_dist_chart, use_container_width=True)
+
+    slow_df = slowest_question_types(history, n=10)
+    if not slow_df.empty:
+        slow_chart = px.bar(
+            slow_df,
+            x="question_type",
+            y="avg_seconds",
+            text="count",
+            title="Slowest Question Types (Avg Response Time)",
+        )
+        slow_chart.update_traces(texttemplate="n=%{text}", textposition="outside")
+        max_val = slow_df["avg_seconds"].max()
+        slow_chart.update_layout(
+            xaxis_title="Question Type",
+            yaxis_title="Avg Seconds",
+            yaxis_range=[0, max_val * 1.2],
+            xaxis_tickangle=45,
+        )
+        st.plotly_chart(slow_chart, use_container_width=True)
 
 
 def render_new_quiz() -> None:
