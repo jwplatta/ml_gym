@@ -314,7 +314,7 @@ def die_higher_wins_expected_value(rng: random.Random) -> GeneratedQuestion:
         subtopic="expectation",
         prompt=(
             f"You and your opponent each roll a fair {sides}-sided die. "
-            f"If you get a larger number, you win ${win_amount}. Otherwise, you get $0. "
+            f"If you get a larger number, you win {win_amount}. Otherwise, you get 0. "
             f"What is your expected winning? {answer_instruction}"
         ),
         answer=answer,
@@ -682,8 +682,8 @@ def three_dice_match_expected_value(rng: random.Random) -> GeneratedQuestion:
         topic="probability",
         subtopic="expectation",
         prompt=(
-            f"You roll 3 fair {sides}-sided dice. If all three match, you win ${triple_payout}. "
-            f"If exactly two match, you win ${pair_payout}. If all three are different, you lose ${all_different_loss}. "
+            f"You roll 3 fair {sides}-sided dice. If all three match, you win {triple_payout}. "
+            f"If exactly two match, you win {pair_payout}. If all three are different, you lose {all_different_loss}. "
             f"What is your expected winning? {answer_instruction}"
         ),
         answer=answer,
@@ -887,6 +887,71 @@ def tournament_one_and_three_meet_in_final(rng: random.Random) -> GeneratedQuest
     )
 
 
+def two_die_optimal_stop(rng: random.Random) -> GeneratedQuestion:
+    # Roll die 1 (n sides), then optionally roll die 2 (m sides).
+    # Keep die 1's value v iff v > E[die2]; otherwise take die 2.
+    # E[die2] = (m+1)/2. Threshold: keep iff v >= floor((m+1)/2) + 1.
+    die_pairs = [(n, m) for n in range(4, 13) for m in range(4, 13) if n != m]
+    n, m = rng.choice(die_pairs)
+
+    e_die2 = Fraction(m + 1, 2)
+    # Keep v if v > e_die2, i.e. v >= floor(e_die2) + 1
+    threshold = int(e_die2) + 1  # works for both integer and half-integer e_die2
+
+    keep_values = [v for v in range(1, n + 1) if v >= threshold]
+    reroll_count = n - len(keep_values)
+
+    ev = (Fraction(reroll_count, n) * e_die2 +
+          Fraction(sum(keep_values), n))
+
+    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(ev)
+    return GeneratedQuestion(
+        question_type="two_die_optimal_stop",
+        topic="probability",
+        subtopic="expectation",
+        prompt=(
+            f"You roll a fair {n}-sided die and see the result. You can keep it and get paid that amount, "
+            f"or instead roll a fair {m}-sided die and get paid that amount. "
+            f"If you play optimally, what is the expected value of the game? {answer_instruction}"
+        ),
+        answer=answer,
+        answer_display=answer_display,
+        hint=(
+            f"Find the expected value of the {m}-sided die: (1+{m})/2. "
+            f"Keep your first roll only if it exceeds that value. "
+            "Then compute the weighted average over all first-roll outcomes."
+        ),
+        grading=grading,
+        metadata={
+            "n": n,
+            "m": m,
+            "threshold": threshold,
+            "keep_values": keep_values,
+            "reroll_count": reroll_count,
+            "ev_fraction": str(ev),
+        },
+    )
+
+
+def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
+    n = rng.randint(3, 8)
+    k = rng.randint(0, n - 1)
+    favorable = sum(math.comb(n, i) for i in range(k + 1))
+    total = 2 ** n
+    result = Fraction(favorable, total)
+    return GeneratedQuestion(
+        question_type="at_most_k_heads",
+        topic="probability",
+        subtopic="probability-rules",
+        prompt=f"What is the probability of getting at most {k} heads in {n} fair coin flips? Give a simplified fraction.",
+        answer=f"{result.numerator}/{result.denominator}",
+        answer_display=f"{result.numerator}/{result.denominator}",
+        hint=f"Sum the binomial probabilities for 0, 1, ..., {k} heads. P(X=i) = C({n},i) / 2^{n}.",
+        grading=GradingSpec.fraction(),
+        metadata={"n": n, "k": k, "favorable": favorable, "total": total},
+    )
+
+
 GENERATORS = [
     even_or_prime_die_roll,
     equal_heads_n_flips,
@@ -911,4 +976,6 @@ GENERATORS = [
     circular_age_order,
     tournament_top_two_meet_in_round,
     tournament_one_and_three_meet_in_final,
+    at_most_k_heads,
+    two_die_optimal_stop,
 ]
