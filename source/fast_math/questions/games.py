@@ -56,8 +56,8 @@ def coin_match_game(rng: random.Random) -> GeneratedQuestion:
         subtopic="expectation",
         prompt=(
             f"You and another person each flip {n} fair coins. "
-            f"If you both get the same number of {face}, you pay them ${pay_them}. "
-            f"Otherwise, they pay you ${win}. "
+            f"If you both get the same number of {face}, you pay them {pay_them}. "
+            f"Otherwise, they pay you {win}. "
             "What is your expected payoff? Give a simplified fraction."
         ),
         answer=ev_str,
@@ -117,8 +117,8 @@ def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
         topic="games",
         subtopic="expectation",
         prompt=(
-            f"{setup}, and I pay you ${you_win} if {win_condition}, "
-            f"and you pay me ${they_win} if they don't, "
+            f"{setup}, and I pay you {you_win} if {win_condition}, "
+            f"and you pay me {they_win} if they don't, "
             "what is the expected value of the game for me? Give a simplified fraction."
         ),
         answer=ev_str,
@@ -218,9 +218,78 @@ def die_bust_optimal_stop(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def two_urn_bayes_draw(rng: random.Random) -> GeneratedQuestion:
+    # Urn A is the "rich" urn (more high-value chips), urn B is the "poor" urn.
+    # Vary chip counts and values.
+    v_lo = rng.choice([1, 2, 5])
+    v_hi = rng.choice([c for c in [10, 20, 50, 100] if c > v_lo])
+
+    # Urn A: more hi chips. Urn B: fewer hi chips.
+    total_a = rng.choice([8, 10, 12])
+    hi_a = rng.randint(2, total_a - 2)           # at least 2 hi, leave room for lo
+    lo_a = total_a - hi_a
+
+    total_b = rng.choice([8, 10, 12])
+    # hi_b must be < hi_a (so urns differ) and >= 1
+    hi_b = rng.randint(1, max(1, hi_a - 1))
+    lo_b = total_b - hi_b
+
+    # P(urn A | drew hi) via Bayes (equal prior)
+    p_hi_a = Fraction(hi_a, total_a)
+    p_hi_b = Fraction(hi_b, total_b)
+    post_a = p_hi_a / (p_hi_a + p_hi_b)
+    post_b = 1 - post_a
+
+    # E[draw from same urn] — one hi chip already removed
+    e_same_a = Fraction(hi_a - 1, total_a - 1) * v_hi + Fraction(lo_a, total_a - 1) * v_lo
+    e_same_b = Fraction(hi_b - 1, total_b - 1) * v_hi + Fraction(lo_b, total_b - 1) * v_lo
+    e_same = post_a * e_same_a + post_b * e_same_b
+
+    # E[draw from opposite urn] — urn untouched
+    e_full_a = Fraction(hi_a, total_a) * v_hi + Fraction(lo_a, total_a) * v_lo
+    e_full_b = Fraction(hi_b, total_b) * v_hi + Fraction(lo_b, total_b) * v_lo
+    e_switch = post_a * e_full_b + post_b * e_full_a
+
+    better = "same" if e_same > e_switch else "opposite"
+    e_same_str = f"{e_same.numerator}/{e_same.denominator}" if e_same.denominator != 1 else str(e_same.numerator)
+    e_switch_str = f"{e_switch.numerator}/{e_switch.denominator}" if e_switch.denominator != 1 else str(e_switch.numerator)
+    answer = f"{better},{e_same_str},{e_switch_str}"
+
+    return GeneratedQuestion(
+        question_type="two_urn_bayes_draw",
+        topic="games",
+        subtopic="bayes",
+        prompt=(
+            f"Two identical-looking urns: urn A has {lo_a} chips worth {v_lo} and {hi_a} chips worth {v_hi}; "
+            f"urn B has {lo_b} chips worth {v_lo} and {hi_b} chips worth {v_hi}. "
+            f"You randomly pick an urn and draw a chip — it's worth {v_hi}. "
+            f"Without replacing it, you may draw a second chip from either urn. "
+            f"Should you draw from the same urn or the opposite urn? "
+            f"Give the expected value of each choice as a simplified fraction (same urn first, then opposite urn)."
+        ),
+        answer=answer,
+        answer_display=f"Draw from {better} urn. E[same]={e_same_str}, E[opposite]={e_switch_str}",
+        hint=(
+            f"Use Bayes to find P(urn A | drew {v_hi}): "
+            f"P(A|hi) = ({hi_a}/{total_a}) / ({hi_a}/{total_a} + {hi_b}/{total_b}) = {post_a}. "
+            f"Then compute E[same] and E[switch] weighting by posterior."
+        ),
+        grading=GradingSpec.text(),
+        metadata={
+            "v_lo": v_lo, "v_hi": v_hi,
+            "lo_a": lo_a, "hi_a": hi_a, "total_a": total_a,
+            "lo_b": lo_b, "hi_b": hi_b, "total_b": total_b,
+            "post_a": str(post_a), "post_b": str(post_b),
+            "e_same": e_same_str, "e_switch": e_switch_str,
+            "better": better,
+        },
+    )
+
+
 GENERATORS = [
     proportional_allocation_game,
     coin_match_game,
     random_ttt_game,
     die_bust_optimal_stop,
+    two_urn_bayes_draw,
 ]
