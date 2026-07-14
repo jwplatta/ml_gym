@@ -195,7 +195,7 @@ def die_bust_optimal_stop(rng: random.Random) -> GeneratedQuestion:
             f"If you roll {bust_str}, your balance goes to zero and the game ends. "
             "After each roll you may cash out your balance or keep rolling. "
             "What is your optimal cash-out threshold and expected payout? "
-            "Give the threshold as a fraction and the EV as a decimal."
+            "Enter as: threshold, EV  (threshold as a fraction, EV as a decimal)."
         ),
         answer=f"{threshold_str},{ev_decimal}",
         answer_display=f"Cash out at {threshold_str}, EV = {ev_decimal}",
@@ -204,7 +204,7 @@ def die_bust_optimal_stop(rng: random.Random) -> GeneratedQuestion:
             f"p_safe * E[safe] > p_bust * x, i.e. ({p_safe}) * {e_safe} > ({p_bust}) * x. "
             f"Solve for x: cash out when x >= {threshold_str}."
         ),
-        grading=GradingSpec.numeric(tolerance=0.01),
+        grading=GradingSpec.compound_fraction_numeric(tolerance=0.01),
         metadata={
             "n": n,
             "bust_faces": sorted(bust_faces),

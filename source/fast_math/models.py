@@ -23,6 +23,11 @@ class GradingSpec:
     def text(cls) -> "GradingSpec":
         return cls(kind="text")
 
+    @classmethod
+    def compound_fraction_numeric(cls, tolerance: float | None = None) -> "GradingSpec":
+        """Two-part answer: a fraction followed by a numeric value, separated by a comma."""
+        return cls(kind="compound_fraction_numeric", tolerance=tolerance)
+
 
 @dataclass(frozen=True)
 class GeneratedQuestion:
