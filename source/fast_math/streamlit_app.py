@@ -4,8 +4,8 @@ import plotly.express as px
 import streamlit as st
 
 from source.fast_math.analytics import (
+    accuracy_by_field,
     daily_question_counts_by_type,
-    score_distribution,
     slowest_question_types,
     summarize_history,
 )
@@ -78,31 +78,16 @@ def render_dashboard() -> None:
     activity_chart.update_xaxes(type="category")
     st.plotly_chart(activity_chart, use_container_width=True)
 
-    left, right = st.columns(2)
-
-    dist_df = score_distribution(history)
-    dist_chart = px.histogram(
-        dist_df,
-        x="score_pct",
-        title="Quiz Score Distribution (All Topics)",
-        range_x=[0, 105],
+    topic_acc_df = accuracy_by_field(history, "topic")
+    topic_acc_chart = px.bar(
+        topic_acc_df,
+        x="topic",
+        y="accuracy_pct",
+        text="questions_answered",
+        title="Accuracy by Topic",
     )
-    dist_chart.update_traces(xbins={"start": 0, "end": 105, "size": 5})
-    dist_chart.update_layout(xaxis_title="Score %", yaxis_title="Quizzes")
-    left.plotly_chart(dist_chart, use_container_width=True)
-
-    topic_dist_chart = px.histogram(
-        dist_df,
-        x="score_pct",
-        color="topic",
-        barmode="overlay",
-        opacity=0.7,
-        title="Quiz Score Distribution by Topic",
-        range_x=[0, 105],
-    )
-    topic_dist_chart.update_traces(xbins={"start": 0, "end": 105, "size": 5})
-    topic_dist_chart.update_layout(xaxis_title="Score %", yaxis_title="Quizzes")
-    right.plotly_chart(topic_dist_chart, use_container_width=True)
+    topic_acc_chart.update_layout(xaxis_title="Topic", yaxis_title="Accuracy %", yaxis_range=[0, 100])
+    st.plotly_chart(topic_acc_chart, use_container_width=True)
 
     slow_df = slowest_question_types(history, n=10)
     if not slow_df.empty:
