@@ -62,6 +62,18 @@ def render_dashboard() -> None:
 
     st.subheader("Practice Activity")
     daily_df = daily_question_counts_by_type(history)
+    all_dates = sorted(daily_df["date"].unique())
+    if len(all_dates) > 1:
+        min_date, max_date = all_dates[0], all_dates[-1]
+        default_start = all_dates[-10] if len(all_dates) >= 10 else min_date
+        date_range = st.select_slider(
+            "Date range",
+            options=all_dates,
+            value=(default_start, max_date),
+            label_visibility="collapsed",
+            key=f"activity_date_range_{min_date}_{max_date}",
+        )
+        daily_df = daily_df[daily_df["date"].between(date_range[0], date_range[1])].sort_values("date")
     activity_chart = px.bar(
         daily_df,
         x="date",
@@ -75,7 +87,7 @@ def render_dashboard() -> None:
         barmode="stack",
         margin={"l": 20, "r": 20, "t": 40, "b": 20},
     )
-    activity_chart.update_xaxes(type="category")
+    activity_chart.update_xaxes(type="category", categoryorder="category ascending")
     st.plotly_chart(activity_chart, use_container_width=True)
 
     topic_acc_df = accuracy_by_field(history, "topic")
