@@ -79,7 +79,7 @@ def coin_match_game(rng: random.Random) -> GeneratedQuestion:
 
 
 def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
-    n = rng.choice([3, 4, 5, 6])
+    n = rng.choice([3, 4, 5])
     cells = n * n
     # winning lines: n rows + n cols + 2 diagonals
     winning_lines = 2 * n + 2
@@ -105,11 +105,11 @@ def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
 
     p_lose = 1 - p_win
 
-    # you_win > they_win so EV favors the other player
-    they_win = rng.choice([1, 2, 3])
-    you_win = rng.choice([v for v in range(they_win + 1, they_win + 6)])
+    # you_lose < you_win so EV favors the house
+    you_lose = rng.choice([1, 2, 3])
+    you_win = rng.choice([v for v in range(you_lose + 1, you_lose + 6)])
 
-    ev = p_win * they_win - p_lose * you_win
+    ev = p_win * you_win - p_lose * you_lose
     ev_str = f"{ev.numerator}/{ev.denominator}" if ev.denominator != 1 else str(ev.numerator)
 
     return GeneratedQuestion(
@@ -117,16 +117,16 @@ def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
         topic="games",
         subtopic="expectation",
         prompt=(
-            f"{setup}, and I pay you {you_win} if {win_condition}, "
-            f"and you pay me {they_win} if they don't, "
-            "what is the expected value of the game for me? Give a simplified fraction."
+            f"{setup}, and you win {you_win} if {win_condition}, "
+            f"and you lose {you_lose} if they don't, "
+            "what is your expected value? Give a simplified fraction."
         ),
         answer=ev_str,
         answer_display=ev_str,
         hint=(
             f"There are {cells} cells and {winning_lines} winning lines ({n} rows + {n} cols + 2 diagonals). "
             f"{hint_prob} "
-            f"EV = P(win) * {they_win} - P(lose) * {you_win}."
+            f"EV = P(win) * {you_win} - P(lose) * {you_lose}."
         ),
         grading=GradingSpec.fraction(),
         metadata={
@@ -136,7 +136,7 @@ def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
             "total_ways": total_ways,
             "p_win": str(p_win),
             "you_win": you_win,
-            "they_win": they_win,
+            "you_lose": you_lose,
             "variant": variant,
             "ev": str(ev),
         },
@@ -159,7 +159,7 @@ def _die_bust_ev(n: int, bust_faces: set[int], safe_faces: list[int], threshold:
 
 
 def die_bust_optimal_stop(rng: random.Random) -> GeneratedQuestion:
-    n = rng.choice([6, 8, 10, 12])
+    n = rng.choice([3, 4, 5, 6])
     faces = list(range(1, n + 1))
 
     # Pick bust faces: always include 1 and n (extremes), optionally add one more pair
