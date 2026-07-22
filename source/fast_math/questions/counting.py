@@ -12,11 +12,14 @@ def count_numbers_with_at_least_k_zeroes(upper_bound: int, minimum_zeroes: int) 
 
 
 def integers_with_at_least_k_zeroes(rng: random.Random) -> GeneratedQuestion:
-    upper_bound = rng.choice([100, 1000, 10000, 100000])
-    digits = len(str(upper_bound))
-    max_zeroes = max(1, min(3, digits - 1))
-    minimum_zeroes = rng.randint(1, max_zeroes)
-    answer = count_numbers_with_at_least_k_zeroes(upper_bound, minimum_zeroes)
+    while True:
+        upper_bound = rng.choice([100, 1000, 10000, 100000])
+        digits = len(str(upper_bound))
+        max_zeroes = max(1, min(3, digits - 1))
+        minimum_zeroes = rng.randint(1, max_zeroes)
+        answer = count_numbers_with_at_least_k_zeroes(upper_bound, minimum_zeroes)
+        if answer >= 10:
+            break
     zero_word = "zero" if minimum_zeroes == 1 else "zeroes"
 
     return GeneratedQuestion(
