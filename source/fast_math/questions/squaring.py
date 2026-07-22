@@ -11,6 +11,7 @@ def square_n_nearest_tens(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="square_n_nearest_tens",
         topic="squaring",
+        effort="medium",
         prompt=f"{value}^2 =",
         answer=str(answer),
         answer_display=str(answer),
@@ -27,6 +28,7 @@ def two_digit_fives(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="two_digit_fives",
         topic="squaring",
+        effort="low",
         prompt=f"{value} x {value} =",
         answer=str(answer),
         answer_display=str(answer),
@@ -44,6 +46,7 @@ def nearest_fives(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="nearest_fives",
         topic="squaring",
+        effort="medium",
         prompt=f"{value}^2 =",
         answer=str(answer),
         answer_display=str(answer),
@@ -59,6 +62,7 @@ def power_of_two(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="power_of_two",
         topic="squaring",
+        effort="low",
         prompt=f"2^{exponent} =",
         answer=str(answer),
         answer_display=str(answer),
@@ -79,6 +83,7 @@ def fast_two_digits(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_two_digits",
         topic="squaring",
+        effort="high",
         prompt=f"{num}^2 =",
         answer=str(ans),
         answer_display=str(ans),
@@ -96,6 +101,7 @@ def memorized_squares(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="memorized_squares",
         topic="squaring",
+        effort="low",
         prompt=f"{value}^2 =",
         answer=str(answer),
         answer_display=str(answer),

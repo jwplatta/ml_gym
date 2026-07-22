@@ -49,6 +49,7 @@ def div_digit_method(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="div_digit_method",
         topic="division",
+        effort="medium",
         prompt=f"{dividend} / {divisor} =",
         answer=str(quotient),
         answer_display=str(quotient),
@@ -88,6 +89,7 @@ def div_simpler_method(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="div_simpler_method",
         topic="division",
+        effort="low",
         prompt=f"{dividend} / {divisor} =",
         answer=str(quotient),
         answer_display=str(quotient),
@@ -111,6 +113,7 @@ def div_search_method(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="div_search_method",
         topic="division",
+        effort="medium",
         prompt=f"{dividend} / {divisor} =",
         answer=str(quotient),
         answer_display=str(quotient),
@@ -131,6 +134,7 @@ def div_reverse_fast_x11(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="div_reverse_fast_x11",
         topic="division",
+        effort="low",
         prompt=f"{dividend} / {divisor} =",
         answer=str(quotient),
         answer_display=str(quotient),

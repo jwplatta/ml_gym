@@ -25,6 +25,7 @@ def integers_with_at_least_k_zeroes(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="integers_with_at_least_k_zeroes",
         topic="counting",
+        effort="medium",
         subtopic="combinations",
         prompt=(
             f"How many integers between 1 and {upper_bound}, inclusive, "

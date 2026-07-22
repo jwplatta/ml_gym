@@ -9,6 +9,7 @@ def fast_mult_by_9(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_mult_by_9",
         topic="multiplication",
+        effort="low",
         prompt=f"{value} x 9 =",
         answer=str(answer),
         answer_display=str(answer),
@@ -25,6 +26,7 @@ def fast_mult_by_teen(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_mult_by_teen",
         topic="multiplication",
+        effort="medium",
         prompt=f"{value} x {mult} =",
         answer=str(answer),
         answer_display=str(answer),
@@ -39,6 +41,7 @@ def fast_mult_by_25(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_mult_by_25",
         topic="multiplication",
+        effort="low",
         prompt=f"{value} x 25 =",
         answer=str(answer),
         answer_display=str(answer),
@@ -54,6 +57,7 @@ def fast_mult_by_125(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_mult_by_125",
         topic="multiplication",
+        effort="medium",
         prompt=f"{value} x 125 =",
         answer=str(answer),
         answer_display=str(answer),
@@ -74,6 +78,7 @@ def flip_percent(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="flip_percent",
         topic="multiplication",
+        effort="low",
         prompt=prompt,
         answer=answer_text,
         answer_display=answer_text,

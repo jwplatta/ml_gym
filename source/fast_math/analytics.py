@@ -16,6 +16,7 @@ def build_attempts_dataframe(history: list[dict]) -> pd.DataFrame:
                     "topic": question["topic"],
                     "is_correct": bool(question["is_correct"]),
                     "response_time_seconds": float(question["response_time_seconds"]),
+                    "confidence": question.get("confidence"),
                 }
             )
     if not rows:
@@ -28,6 +29,7 @@ def build_attempts_dataframe(history: list[dict]) -> pd.DataFrame:
                 "topic",
                 "is_correct",
                 "response_time_seconds",
+                "confidence",
             ]
         )
     return pd.DataFrame(rows)
@@ -112,7 +114,11 @@ def question_type_stats(history: list[dict]) -> dict[str, dict]:
         return {}
     return (
         attempts.groupby("question_type")
-        .agg(seen=("is_correct", "size"), accuracy=("is_correct", "mean"))
+        .agg(
+            seen=("is_correct", "size"),
+            accuracy=("is_correct", "mean"),
+            avg_confidence=("confidence", "mean"),
+        )
         .to_dict("index")
     )
 

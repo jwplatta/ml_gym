@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 
@@ -39,6 +39,7 @@ class GeneratedQuestion:
     hint: str | None
     grading: GradingSpec
     subtopic: str | None = None
+    effort: Literal["low", "medium", "high"] = "medium"
     metadata: dict[str, Any] = field(default_factory=dict)
     question_id: str = field(default_factory=lambda: str(uuid4()))
 
@@ -58,12 +59,14 @@ class QuestionAttempt:
     canonical_answer: str
     answer_display: str
     hint: str | None
+    effort: str
     metadata: dict[str, Any]
     raw_user_answer: str
     normalized_user_answer: str
     is_correct: bool
     response_time_seconds: float
     submitted_at: str
+    confidence: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

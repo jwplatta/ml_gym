@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass
 from time import monotonic
@@ -8,7 +9,7 @@ from uuid import uuid4
 from source.fast_math.analytics import question_type_stats
 from source.fast_math.grading import is_correct_answer
 from source.fast_math.models import GeneratedQuestion, QuestionAttempt, QuizAttemptRecord, utc_now_iso
-from source.fast_math.registry import generators_by_topic
+from source.fast_math.registry import QuestionGenerator, generators_by_topic
 
 
 @dataclass
@@ -40,6 +41,14 @@ class ActiveQuiz:
         return self.current_index >= len(self.questions)
 
 
+_EFFORT_LEVELS = ("low", "medium", "high")
+
+
+def _probe(gen: QuestionGenerator) -> GeneratedQuestion:
+    """Call a generator with a fixed seed to read its metadata without side effects."""
+    return gen(random.Random(0))
+
+
 def build_quiz(
     *,
     selected_topics: list[str],
@@ -49,13 +58,35 @@ def build_quiz(
     history: list[dict] | None = None,
     use_weights: bool = False,
     allow_type_repeats: bool = False,
+    selected_efforts: list[str] | None = None,
+    effort_distribution: dict[str, float] | None = None,
 ) -> ActiveQuiz:
+    """Build a quiz.
+
+    Args:
+        effort_distribution: Mapping of effort level to target proportion, e.g.
+            {"low": 0.4, "medium": 0.4, "high": 0.2}. Values should sum to 1.0.
+            When None, all effort levels are weighted equally.
+        selected_efforts: Which effort levels to include. When None, all are included.
+    """
     topic_map = generators_by_topic()
     generators = [generator for topic in selected_topics for generator in topic_map.get(topic, [])]
+
+    # Filter by effort level
+    if selected_efforts is not None:
+        effort_set = set(selected_efforts)
+        generators = [g for g in generators if _probe(g).effort in effort_set]
+
     if not generators:
-        raise ValueError("No question generators available for the selected topics.")
+        raise ValueError("No question generators available for the selected topics and effort levels.")
 
     rng = random.Random(seed)
+
+    # Build effort weight lookup
+    if effort_distribution:
+        effort_weights = {k: float(v) for k, v in effort_distribution.items()}
+    else:
+        effort_weights = {level: 1.0 / len(_EFFORT_LEVELS) for level in _EFFORT_LEVELS}
 
     questions = []
     used_types: set[str] = set()
@@ -71,15 +102,27 @@ def build_quiz(
             available = list(generators)
             used_types.clear()
 
-        if stats:
-            weights = []
-            for gen in available:
-                qt = gen(random.Random(0)).question_type
-                s = stats.get(qt, {"seen": 0, "accuracy": 0.5})
-                weights.append(1 / (s["seen"] + 1) + (1 - s["accuracy"]))
-            gen = rng.choices(available, weights=weights, k=1)[0]
-        else:
-            gen = rng.choice(available)
+        weights = []
+        for gen in available:
+            q = _probe(gen)
+            effort_w = effort_weights.get(q.effort, 1.0 / len(_EFFORT_LEVELS))
+
+            if stats:
+                s = stats.get(q.question_type, {"seen": 0, "accuracy": 0.5, "avg_confidence": None})
+                history_w = 1 / (s["seen"] + 1) + (1 - s["accuracy"])
+
+                avg_conf = s.get("avg_confidence")
+                if avg_conf is not None and not math.isnan(float(avg_conf)):
+                    conf_penalty = (5.0 - float(avg_conf)) / 4.0
+                else:
+                    conf_penalty = 0.5
+                history_w += conf_penalty
+            else:
+                history_w = 1.0
+
+            weights.append(effort_w * history_w)
+
+        gen = rng.choices(available, weights=weights, k=1)[0]
 
         question = gen(rng)
         questions.append(question)
@@ -87,7 +130,7 @@ def build_quiz(
         if not allow_type_repeats:
             qt = question.question_type
             used_types.add(qt)
-            available = [g for g in generators if g(random.Random(0)).question_type not in used_types]
+            available = [g for g in generators if _probe(g).question_type not in used_types]
     return ActiveQuiz(
         quiz_id=str(uuid4()),
         started_at=utc_now_iso(),
@@ -113,6 +156,7 @@ def submit_answer(active_quiz: ActiveQuiz, user_answer: str) -> QuestionAttempt:
         canonical_answer=question.answer,
         answer_display=question.answer_display,
         hint=question.hint,
+        effort=question.effort,
         metadata=question.metadata,
         raw_user_answer=user_answer,
         normalized_user_answer=normalized_answer,

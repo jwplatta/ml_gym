@@ -15,6 +15,7 @@ def proportional_allocation_game(rng: random.Random) -> GeneratedQuestion:
         question_type="proportional_allocation_game",
         topic="games",
         subtopic="nash-equilibrium",
+        effort="high",
         prompt=(
             f"Two players each allocate any real number of points between 0 and {prize} into a machine. "
             f"The machine selects a player with probability proportional to their allocation. "
@@ -54,6 +55,7 @@ def coin_match_game(rng: random.Random) -> GeneratedQuestion:
         question_type="coin_match_game",
         topic="games",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"You and another person each flip {n} fair coins. "
             f"If you both get the same number of {face}, you pay them {pay_them}. "
@@ -116,6 +118,7 @@ def random_ttt_game(rng: random.Random) -> GeneratedQuestion:
         question_type="random_ttt_game",
         topic="games",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"{setup}, and you win {you_win} if {win_condition}, "
             f"and you lose {you_lose} if they don't, "
@@ -189,6 +192,7 @@ def die_bust_optimal_stop(rng: random.Random) -> GeneratedQuestion:
         question_type="die_bust_optimal_stop",
         topic="games",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"You are playing a game with a fair {n}-sided die. "
             f"If you roll {safe_str}, you add that amount in dollars to your balance. "
@@ -259,6 +263,7 @@ def two_urn_bayes_draw(rng: random.Random) -> GeneratedQuestion:
         question_type="two_urn_bayes_draw",
         topic="games",
         subtopic="bayes",
+        effort="high",
         prompt=(
             f"Two identical-looking urns: urn A has {lo_a} chips worth {v_lo} and {hi_a} chips worth {v_hi}; "
             f"urn B has {lo_b} chips worth {v_lo} and {hi_b} chips worth {v_hi}. "

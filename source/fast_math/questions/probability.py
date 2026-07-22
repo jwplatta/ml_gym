@@ -82,6 +82,7 @@ def even_or_prime_die_roll(rng: random.Random) -> GeneratedQuestion:
         question_type="even_or_prime_die_roll",
         topic="probability",
         subtopic="probability-rules",
+        effort="low",
         prompt=f"What is the probability of rolling a fair {sides}-sided die and getting an even number or a prime number? Give your answer as a simplified fraction.",
         answer=str(answer),
         answer_display=str(answer),
@@ -107,6 +108,7 @@ def equal_heads_n_flips(rng: random.Random) -> GeneratedQuestion:
         question_type="equal_heads_n_flips",
         topic="probability",
         subtopic="probability-rules",
+        effort="medium",
         prompt=f"You and your opponent each flip a fair coin {flips} times. What is the probability that you get the same number of heads? Give a simplified fraction.",
         answer=f"{result.numerator}/{result.denominator}",
         answer_display=f"{result.numerator}/{result.denominator}",
@@ -128,6 +130,7 @@ def all_target_children_given_at_least_one(rng: random.Random) -> GeneratedQuest
         question_type="all_target_children_given_at_least_one",
         topic="probability",
         subtopic="bayes",
+        effort="medium",
         prompt=(
             f"There is a family with {children} children. Given that at least one child is a {target_gender}, "
             f"what is the probability that all {children} children are {target_gender}s? "
@@ -162,6 +165,7 @@ def double_headed_coin_given_heads(rng: random.Random) -> GeneratedQuestion:
         question_type="double_headed_coin_given_heads",
         topic="probability",
         subtopic="bayes",
+        effort="medium",
         prompt=(
             f"An urn has {fair_coins} fair coins, {double_headed_coins} coins with both sides heads, "
             f"and {double_tailed_coins} coins with both sides tails. You pick a coin at random and flip it. "
@@ -198,6 +202,7 @@ def painted_cube_hidden_red_given_visible_white(rng: random.Random) -> Generated
         question_type="painted_cube_hidden_red_given_visible_white",
         topic="probability",
         subtopic="bayes",
+        effort="high",
         prompt=(
             f"There is a {side_length}x{side_length}x{side_length} cube whose outer surface is painted red "
             "and all inner faces are white. One of the component 1x1 cubes is selected at random and thrown on a table. "
@@ -234,6 +239,7 @@ def pocket_queens(rng: random.Random) -> GeneratedQuestion:
         question_type="pocket_queens",
         topic="probability",
         subtopic="combinations",
+        effort="medium",
         prompt=(
             f"What is the probability of getting exactly {target_count} {rank_name} "
             f"in a {hand_size}-card hand from a standard 52-card deck? Give a simplified fraction."
@@ -241,9 +247,10 @@ def pocket_queens(rng: random.Random) -> GeneratedQuestion:
         answer=str(answer),
         answer_display=str(answer),
         hint=(
-            "First choose the target rank cards you want in the hand. "
-            "Then choose the rest of the hand from the non-target cards. "
-            "Put that favorable count over the number of all possible hands."
+            f"Use unordered hands: C(4,{target_count}) * C(48,{hand_size - target_count}) / C(52,{hand_size}). "
+            f"C(4,{target_count}) chooses which {target_count} of the 4 queens appear. "
+            f"C(48,{hand_size - target_count}) chooses the remaining {hand_size - target_count} non-queen cards from the 48 non-queens. "
+            f"C(52,{hand_size}) is the total number of {hand_size}-card hands."
         ),
         grading=GradingSpec.fraction(),
         metadata={
@@ -281,6 +288,7 @@ def one_of_each_rank_before_ace_of_diamonds(rng: random.Random) -> GeneratedQues
         question_type="one_of_each_rank_before_ace_of_diamonds",
         topic="probability",
         subtopic="combinations",
+        effort="high",
         prompt=(
             "Cards are dealt from a randomly shuffled 52-card deck until the ace of diamonds appears. "
             f"What is the probability that exactly {requirement_text} appear before the ace of diamonds? "
@@ -312,6 +320,7 @@ def die_higher_wins_expected_value(rng: random.Random) -> GeneratedQuestion:
         question_type="die_higher_wins_expected_value",
         topic="probability",
         subtopic="expectation",
+        effort="medium",
         prompt=(
             f"You and your opponent each roll a fair {sides}-sided die. "
             f"If you get a larger number, you win {win_amount}. Otherwise, you get 0. "
@@ -344,6 +353,7 @@ def expected_rolls_until_target_face(rng: random.Random) -> GeneratedQuestion:
         question_type="expected_rolls_until_target_face",
         topic="probability",
         subtopic="expectation",
+        effort="medium",
         prompt=(
             f"You roll a fair {sides}-sided die until a {target_face} comes up. "
             f"What is the expected number of rolls? {answer_instruction}"
@@ -373,6 +383,7 @@ def expected_rolls_to_see_all_faces(rng: random.Random) -> GeneratedQuestion:
         question_type="expected_rolls_to_see_all_faces",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"What is the expected number of rolls of a fair {sides}-sided die until you have seen every face at least once? "
             f"{answer_instruction}"
@@ -408,6 +419,7 @@ def expected_days_until_bad_returns(rng: random.Random) -> GeneratedQuestion:
         question_type="expected_days_until_bad_returns",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"If it is a good day (G), there is a {p_good_to_good} chance tomorrow is G and a {p_good_to_bad} chance tomorrow is bad (B). "
             f"If it is a bad day (B), there is a {p_bad_to_good} chance tomorrow is G and a {p_bad_to_bad} chance tomorrow is B. "
@@ -454,6 +466,7 @@ def expected_flips_for_consecutive_heads(rng: random.Random) -> GeneratedQuestio
         question_type="expected_flips_for_consecutive_heads",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"You flip a fair coin until you get {streak} consecutive heads. "
             f"What is the expected number of flips? {answer_instruction}"
@@ -506,6 +519,7 @@ def expected_draws_until_all_balls_same_color(rng: random.Random) -> GeneratedQu
         question_type="expected_draws_until_all_balls_same_color",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"There are {balls_per_color} red balls and {balls_per_color} black balls in a bag. "
             "Randomly pick 2 balls without replacement, then repaint the second ball to the color of the first. "
@@ -541,6 +555,7 @@ def fair_die_variance(rng: random.Random) -> GeneratedQuestion:
         question_type="fair_die_variance",
         topic="probability",
         subtopic="variance",
+        effort="medium",
         prompt=f"What is the variance of a fair {sides}-sided die roll? {answer_instruction}",
         answer=answer,
         answer_display=answer_display,
@@ -569,6 +584,7 @@ def scaled_die_variance(rng: random.Random) -> GeneratedQuestion:
         question_type="scaled_die_variance",
         topic="probability",
         subtopic="variance",
+        effort="medium",
         prompt=(
             f"Let X be the result of a fair {sides}-sided die roll. "
             f"What is Var({scale}X)? {answer_instruction}"
@@ -605,6 +621,7 @@ def sample_variance_from_dataset(rng: random.Random) -> GeneratedQuestion:
         question_type="sample_variance_from_dataset",
         topic="probability",
         subtopic="variance",
+        effort="medium",
         prompt=(
             f"What is the sample variance of the data set {values_text}? "
             f"{answer_instruction}"
@@ -637,6 +654,7 @@ def doubled_suit_card_expected_value(rng: random.Random) -> GeneratedQuestion:
         question_type="doubled_suit_card_expected_value",
         topic="probability",
         subtopic="expectation",
+        effort="medium",
         prompt=(
             f"You draw one card from a standard deck, with A=1, J=11, Q=12, K=13. "
             f"For {suit}, all card values are multiplied by {multiplier}. "
@@ -681,6 +699,7 @@ def three_dice_match_expected_value(rng: random.Random) -> GeneratedQuestion:
         question_type="three_dice_match_expected_value",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"You roll 3 fair {sides}-sided dice. If all three match, you win {triple_payout}. "
             f"If exactly two match, you win {pair_payout}. If all three are different, you lose {all_different_loss}. "
@@ -727,6 +746,7 @@ def torpedoes_destroy_ship(rng: random.Random) -> GeneratedQuestion:
         question_type="torpedoes_destroy_ship",
         topic="probability",
         subtopic="probability-rules",
+        effort="low",
         prompt=(
             f"A torpedo hits with probability {hit_probability} and destroys the ship if it hits. "
             f"{torpedoes} torpedoes are fired independently. What is the probability the ship is destroyed? "
@@ -762,6 +782,7 @@ def shared_birthday_period(rng: random.Random) -> GeneratedQuestion:
         question_type="shared_birthday_period",
         topic="probability",
         subtopic="probability-rules",
+        effort="low",
         prompt=(
             f"What is the probability that {people_str} people are all born on the same {label}? "
             "Give a simplified fraction."
@@ -794,6 +815,7 @@ def circular_age_order(rng: random.Random) -> GeneratedQuestion:
         question_type="circular_age_order",
         topic="probability",
         subtopic="combinations",
+        effort="medium",
         prompt=(
             f"{n} people with distinct ages sit randomly at a round table. "
             "What is the probability they are seated in either ascending or descending order of age "
@@ -828,6 +850,7 @@ def tournament_top_two_meet_in_round(rng: random.Random) -> GeneratedQuestion:
         question_type="tournament_top_two_meet_in_round",
         topic="probability",
         subtopic="combinations",
+        effort="high",
         prompt=(
             f"A single-elimination tennis tournament has {n} players. "
             "Each player has a unique rating and the higher-rated player always wins. "
@@ -863,6 +886,7 @@ def tournament_one_and_three_meet_in_final(rng: random.Random) -> GeneratedQuest
         question_type="tournament_one_and_three_meet_in_final",
         topic="probability",
         subtopic="combinations",
+        effort="high",
         prompt=(
             f"A single-elimination tennis tournament has {n} players. "
             "Each player has a unique rating and the higher-rated player always wins. "
@@ -909,6 +933,7 @@ def two_die_optimal_stop(rng: random.Random) -> GeneratedQuestion:
         question_type="two_die_optimal_stop",
         topic="probability",
         subtopic="expectation",
+        effort="high",
         prompt=(
             f"You roll a fair {n}-sided die and see the result. You can keep it and get paid that amount, "
             f"or instead roll a fair {m}-sided die and get paid that amount. "
@@ -943,6 +968,7 @@ def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
         question_type="at_most_k_heads",
         topic="probability",
         subtopic="probability-rules",
+        effort="low",
         prompt=f"What is the probability of getting at most {k} heads in {n} fair coin flips? Give a simplified fraction.",
         answer=f"{result.numerator}/{result.denominator}",
         answer_display=f"{result.numerator}/{result.denominator}",
