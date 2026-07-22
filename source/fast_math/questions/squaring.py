@@ -108,7 +108,6 @@ def memorized_squares(rng: random.Random) -> GeneratedQuestion:
 GENERATORS = [
     square_n_nearest_tens,
     two_digit_fives,
-    nearest_fives,
     power_of_two,
     fast_two_digits,
     memorized_squares,
