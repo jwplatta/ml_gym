@@ -1163,15 +1163,17 @@ def exactly_k_heads_in_n_flips(rng: random.Random) -> GeneratedQuestion:
     if p == Fraction(1, 2):
         coin_desc = "a fair coin"
         p_display = "1/2"
+        effort = "low"
     else:
         coin_desc = f"a biased coin (heads probability {p})"
         p_display = str(p)
+        effort = "medium"
 
     return GeneratedQuestion(
         question_type="exactly_k_heads_in_n_flips",
         topic="probability",
         subtopic="probability-rules",
-        effort="low",
+        effort=effort,
         prompt=(
             f"You flip {coin_desc} {n} times. "
             f"What is the probability of getting exactly {k} heads? "
