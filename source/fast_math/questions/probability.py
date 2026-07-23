@@ -1137,31 +1137,54 @@ def chain_rule_none_have_trait(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+_COIN_BIASES = [
+    Fraction(1, 2),
+    Fraction(1, 3),
+    Fraction(2, 3),
+    Fraction(1, 4),
+    Fraction(3, 4),
+    Fraction(1, 5),
+    Fraction(2, 5),
+    Fraction(3, 5),
+    Fraction(4, 5),
+]
+
+
 def exactly_k_heads_in_n_flips(rng: random.Random) -> GeneratedQuestion:
-    # n > k to avoid the trivial k=n case; n in 4..12, k in 1..n-2
-    n = rng.randint(4, 12)
+    # n > k to avoid the trivial k=n case; n in 4..10, k in 1..n-2
+    n = rng.randint(4, 10)
     k = rng.randint(1, n - 2)
+    p = rng.choice(_COIN_BIASES)
+    q = 1 - p
     ways = math.comb(n, k)
-    answer = Fraction(ways, 2**n)
+    answer = Fraction(ways) * p**k * q**(n - k)
     answer_str = str(answer)
+
+    if p == Fraction(1, 2):
+        coin_desc = "a fair coin"
+        p_display = "1/2"
+    else:
+        coin_desc = f"a biased coin (heads probability {p})"
+        p_display = str(p)
+
     return GeneratedQuestion(
         question_type="exactly_k_heads_in_n_flips",
         topic="probability",
         subtopic="probability-rules",
         effort="low",
         prompt=(
-            f"You flip a fair coin {n} times. "
+            f"You flip {coin_desc} {n} times. "
             f"What is the probability of getting exactly {k} heads? "
             f"Give a simplified fraction."
         ),
         answer=answer_str,
         answer_display=answer_str,
         hint=(
-            f"Use the binomial formula: C({n},{k}) × (1/2)^{n}. "
-            f"C({n},{k}) = {ways}, so the answer is {ways}/{2**n} = {answer_str}."
+            f"Use the binomial formula: C({n},{k}) × ({p_display})^{k} × ({q})^{n-k}. "
+            f"C({n},{k}) = {ways}, so the answer is {ways} × {p**k} × {q**(n-k)} = {answer_str}."
         ),
         grading=GradingSpec.fraction(),
-        metadata={"n": n, "k": k, "ways": ways, "total": 2**n, "fraction": answer_str},
+        metadata={"n": n, "k": k, "p": str(p), "ways": ways, "fraction": answer_str},
     )
 
 
