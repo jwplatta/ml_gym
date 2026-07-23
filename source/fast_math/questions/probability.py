@@ -1037,6 +1037,106 @@ def total_probability_eye_color(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+_CHAIN_RULE_SCENARIOS = [
+    {
+        "group": "people",
+        "trait": "been to Boston in the fall",
+        "setting": "at our party",
+        "pick_verb": "pick",
+    },
+    {
+        "group": "students",
+        "trait": "failed the midterm",
+        "setting": "in the class",
+        "pick_verb": "select",
+    },
+    {
+        "group": "employees",
+        "trait": "worked overtime last week",
+        "setting": "at the company",
+        "pick_verb": "choose",
+    },
+    {
+        "group": "cards",
+        "trait": "hearts",
+        "setting": "in the deck",
+        "pick_verb": "draw",
+    },
+    {
+        "group": "balls",
+        "trait": "red",
+        "setting": "in the urn",
+        "pick_verb": "draw",
+    },
+    {
+        "group": "patients",
+        "trait": "allergic to penicillin",
+        "setting": "in the ward",
+        "pick_verb": "select",
+    },
+]
+
+
+def chain_rule_none_have_trait(rng: random.Random) -> GeneratedQuestion:
+    scenario = rng.choice(_CHAIN_RULE_SCENARIOS)
+    group = scenario["group"]
+    trait = scenario["trait"]
+    setting = scenario["setting"]
+    pick_verb = scenario["pick_verb"]
+
+    # Total population: 20–80, pick_count: 2–5, trait_count: small fraction
+    total = rng.choice([20, 24, 30, 36, 40, 48, 50, 60])
+    pick_count = rng.randint(2, 5)
+    # trait_count: between 2 and ~15% of total, but leave enough non-trait items
+    max_trait = max(2, total // 8)
+    trait_count = rng.randint(2, max_trait)
+    non_trait = total - trait_count
+
+    # P(none have trait) via chain rule (sampling without replacement)
+    # = (non_trait / total) * ((non_trait-1) / (total-1)) * ...
+    answer = Fraction(1)
+    for k in range(pick_count):
+        answer *= Fraction(non_trait - k, total - k)
+
+    answer_str = str(answer)
+
+    # Build chain rule expansion for hint
+    chain_terms = " × ".join(
+        f"({non_trait - k}/{total - k})" for k in range(pick_count)
+    )
+
+    prompt = (
+        f"There are {total} {group} {setting}, of which {trait_count} have {trait}. "
+        f"We {pick_verb} {pick_count} {group} at random without replacement. "
+        f"What is the probability that none of them have {trait}? Give a simplified fraction."
+    )
+    hint = (
+        f"Use the chain rule (sampling without replacement). "
+        f"There are {non_trait} {group} without the trait out of {total} total. "
+        f"P(none) = {chain_terms} = {answer_str}."
+    )
+
+    return GeneratedQuestion(
+        question_type="chain_rule_none_have_trait",
+        topic="probability",
+        subtopic="conditional-probability",
+        effort="low",
+        prompt=prompt,
+        answer=answer_str,
+        answer_display=answer_str,
+        hint=hint,
+        grading=GradingSpec.fraction(),
+        metadata={
+            "scenario": scenario["group"],
+            "total": total,
+            "trait_count": trait_count,
+            "non_trait": non_trait,
+            "pick_count": pick_count,
+            "fraction": answer_str,
+        },
+    )
+
+
 def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
     n = rng.randint(3, 8)
     k = rng.randint(0, n - 1)
@@ -1054,6 +1154,287 @@ def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
         hint=f"Sum the binomial probabilities for 0, 1, ..., {k} heads. P(X=i) = C({n},i) / 2^{n}.",
         grading=GradingSpec.fraction(),
         metadata={"n": n, "k": k, "favorable": favorable, "total": total},
+    )
+
+
+_CT3_SCENARIOS = [
+    {
+        "name": "Titanic passengers",
+        "outcome_labels": ["Survived", "Died"],
+        "sex_labels": ["Male", "Female"],
+        "cabin_name": "cabin class",
+        "cabin_labels": ["Cabin 1", "Cabin 2", "Cabin 3"],
+    },
+    {
+        "name": "hospital patients",
+        "outcome_labels": ["Recovered", "Died"],
+        "sex_labels": ["Male", "Female"],
+        "cabin_name": "ward",
+        "cabin_labels": ["Ward A", "Ward B", "Ward C"],
+    },
+    {
+        "name": "clinical trial participants",
+        "outcome_labels": ["Improved", "Not Improved"],
+        "sex_labels": ["Male", "Female"],
+        "cabin_name": "treatment group",
+        "cabin_labels": ["Placebo", "Drug A", "Drug B"],
+    },
+    {
+        "name": "flight passengers",
+        "outcome_labels": ["On Time", "Delayed"],
+        "sex_labels": ["Male", "Female"],
+        "cabin_name": "seating class",
+        "cabin_labels": ["Economy", "Business", "First Class"],
+    },
+]
+
+
+def _ct3_random_counts(rng: random.Random, n_cells: int, total: int) -> list[int]:
+    """Stars-and-bars: n_cells positive integers summing to total."""
+    cuts = sorted(rng.sample(range(1, total), k=n_cells - 1))
+    counts = [cuts[0]] + [cuts[i] - cuts[i - 1] for i in range(1, n_cells - 1)] + [total - cuts[-1]]
+    return counts
+
+
+def _ct3_build_table_md(
+    scenario: dict,
+    table: list[list[list[Fraction]]],
+) -> str:
+    """Build a markdown pipe table for a 3D contingency table (outcome x sex x cabin)."""
+    outcome_labels = scenario["outcome_labels"]
+    sex_labels = scenario["sex_labels"]
+    cabin_labels = scenario["cabin_labels"]
+    cabin_name = scenario["cabin_name"]
+    n_cabins = len(cabin_labels)
+
+    header = "| | | " + " | ".join(cabin_labels) + " | Total |"
+    sep = "|---|---|" + "---|" * (n_cabins + 1)
+
+    rows = []
+    for o, outcome in enumerate(outcome_labels):
+        for s, sex in enumerate(sex_labels):
+            cells = " | ".join(str(table[o][s][c]) for c in range(n_cabins))
+            row_total = sum(table[o][s][c] for c in range(n_cabins))
+            prefix = f"| **{outcome}** | {sex} |" if s == 0 else f"| | {sex} |"
+            rows.append(f"{prefix} {cells} | {row_total} |")
+
+    # Column totals (marginal over outcome and sex, by cabin)
+    cabin_totals = [
+        sum(table[o][s][c] for o in range(2) for s in range(2))
+        for c in range(n_cabins)
+    ]
+    total_row = "| **Total** | | " + " | ".join(str(t) for t in cabin_totals) + " | 1 |"
+
+    caption = f"*Joint probability table — {scenario['name']} by sex and {cabin_name}*"
+    return "\n".join([caption, "", header, sep] + rows + [total_row])
+
+
+def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
+    scenario = rng.choice(_CT3_SCENARIOS)
+    outcome_labels = scenario["outcome_labels"]
+    sex_labels = scenario["sex_labels"]
+    cabin_labels = scenario["cabin_labels"]
+    cabin_name = scenario["cabin_name"]
+    n_cabins = len(cabin_labels)
+    n_cells = 2 * 2 * n_cabins  # outcomes × sexes × cabins
+
+    total = rng.choice([24, 30, 36, 40, 48, 60])
+    counts = _ct3_random_counts(rng, n_cells, total)
+
+    # table[o][s][c] = Fraction joint probability
+    table: list[list[list[Fraction]]] = [
+        [
+            [Fraction(counts[o * 2 * n_cabins + s * n_cabins + c], total) for c in range(n_cabins)]
+            for s in range(2)
+        ]
+        for o in range(2)
+    ]
+
+    # Precompute all marginals
+    def p_osc(o: int, s: int, c: int) -> Fraction:
+        return table[o][s][c]
+
+    def p_os(o: int, s: int) -> Fraction:
+        return sum(table[o][s][c] for c in range(n_cabins))
+
+    def p_oc(o: int, c: int) -> Fraction:
+        return sum(table[o][s][c] for s in range(2))
+
+    def p_sc(s: int, c: int) -> Fraction:
+        return sum(table[o][s][c] for o in range(2))
+
+    def p_o(o: int) -> Fraction:
+        return sum(table[o][s][c] for s in range(2) for c in range(n_cabins))
+
+    def p_s(s: int) -> Fraction:
+        return sum(table[o][s][c] for o in range(2) for c in range(n_cabins))
+
+    def p_c(c: int) -> Fraction:
+        return sum(table[o][s][c] for o in range(2) for s in range(2))
+
+    table_md = _ct3_build_table_md(scenario, table)
+
+    # Pick random indices
+    o = rng.randrange(2)
+    s = rng.randrange(2)
+    c = rng.randrange(n_cabins)
+
+    OL = outcome_labels
+    SL = sex_labels
+    CL = cabin_labels
+
+    question_subtype = rng.choices(
+        [
+            "joint_3way",
+            "joint_os",
+            "joint_oc",
+            "joint_sc",
+            "marginal_o",
+            "marginal_s",
+            "marginal_c",
+            "cond_o_given_s",
+            "cond_o_given_c",
+            "cond_o_given_sc",
+            "cond_s_given_o",
+            "cond_c_given_o",
+            "cond_os_given_c",
+        ],
+        weights=[8, 6, 6, 6, 5, 5, 5, 10, 10, 12, 10, 10, 7],
+        k=1,
+    )[0]
+
+    if question_subtype == "joint_3way":
+        answer = p_osc(o, s, c)
+        q = f"What is the probability that a randomly selected person is **{SL[s]}**, **{OL[o]}**, and in **{CL[c]}**?"
+        hint = f"P({OL[o]}, {SL[s]}, {CL[c]}) is read directly from the table: {answer}."
+
+    elif question_subtype == "joint_os":
+        answer = p_os(o, s)
+        terms = " + ".join(str(table[o][s][c2]) for c2 in range(n_cabins))
+        q = f"What is the probability that a randomly selected person is **{SL[s]}** and **{OL[o]}**?"
+        hint = f"P({OL[o]}, {SL[s]}) = sum over all {cabin_name}s: {terms} = {answer}."
+
+    elif question_subtype == "joint_oc":
+        answer = p_oc(o, c)
+        terms = " + ".join(str(table[o][s2][c]) for s2 in range(2))
+        q = f"What is the probability that a randomly selected person is **{OL[o]}** and in **{CL[c]}**?"
+        hint = f"P({OL[o]}, {CL[c]}) = sum over both sexes: {terms} = {answer}."
+
+    elif question_subtype == "joint_sc":
+        answer = p_sc(s, c)
+        terms = " + ".join(str(table[o2][s][c]) for o2 in range(2))
+        q = f"What is the probability that a randomly selected person is **{SL[s]}** and in **{CL[c]}**?"
+        hint = f"P({SL[s]}, {CL[c]}) = sum over both outcomes: {terms} = {answer}."
+
+    elif question_subtype == "marginal_o":
+        answer = p_o(o)
+        terms = " + ".join(str(table[o][s2][c2]) for s2 in range(2) for c2 in range(n_cabins))
+        q = f"What is the probability that a randomly selected person is **{OL[o]}**?"
+        hint = f"P({OL[o]}) = sum all cells in the '{OL[o]}' rows: {terms} = {answer}."
+
+    elif question_subtype == "marginal_s":
+        answer = p_s(s)
+        terms = " + ".join(str(table[o2][s][c2]) for o2 in range(2) for c2 in range(n_cabins))
+        q = f"What is the probability that a randomly selected person is **{SL[s]}**?"
+        hint = f"P({SL[s]}) = sum all cells in the '{SL[s]}' rows: {terms} = {answer}."
+
+    elif question_subtype == "marginal_c":
+        answer = p_c(c)
+        terms = " + ".join(str(table[o2][s2][c]) for o2 in range(2) for s2 in range(2))
+        q = f"What is the probability that a randomly selected person is in **{CL[c]}**?"
+        hint = f"P({CL[c]}) = sum all cells in the '{CL[c]}' column: {terms} = {answer}."
+
+    elif question_subtype == "cond_o_given_s":
+        denom = p_s(s)
+        answer = p_os(o, s) / denom
+        q = f"Given that a person is **{SL[s]}**, what is the probability they are **{OL[o]}**?"
+        hint = (
+            f"P({OL[o]} | {SL[s]}) = P({OL[o]}, {SL[s]}) / P({SL[s]}) "
+            f"= {p_os(o, s)} / {denom} = {answer}."
+        )
+
+    elif question_subtype == "cond_o_given_c":
+        denom = p_c(c)
+        answer = p_oc(o, c) / denom
+        q = f"Given that a person is in **{CL[c]}**, what is the probability they are **{OL[o]}**?"
+        hint = (
+            f"P({OL[o]} | {CL[c]}) = P({OL[o]}, {CL[c]}) / P({CL[c]}) "
+            f"= {p_oc(o, c)} / {denom} = {answer}."
+        )
+
+    elif question_subtype == "cond_o_given_sc":
+        denom = p_sc(s, c)
+        answer = p_osc(o, s, c) / denom
+        q = (
+            f"Given that a person is **{SL[s]}** and in **{CL[c]}**, "
+            f"what is the probability they are **{OL[o]}**?"
+        )
+        hint = (
+            f"P({OL[o]} | {SL[s]}, {CL[c]}) = P({OL[o]}, {SL[s]}, {CL[c]}) / P({SL[s]}, {CL[c]}) "
+            f"= {p_osc(o, s, c)} / {denom} = {answer}."
+        )
+
+    elif question_subtype == "cond_s_given_o":
+        denom = p_o(o)
+        answer = p_os(o, s) / denom
+        q = f"Given that a person is **{OL[o]}**, what is the probability they are **{SL[s]}**?"
+        hint = (
+            f"P({SL[s]} | {OL[o]}) = P({OL[o]}, {SL[s]}) / P({OL[o]}) "
+            f"= {p_os(o, s)} / {denom} = {answer}."
+        )
+
+    elif question_subtype == "cond_c_given_o":
+        denom = p_o(o)
+        answer = p_oc(o, c) / denom
+        q = f"Given that a person is **{OL[o]}**, what is the probability they are in **{CL[c]}**?"
+        hint = (
+            f"P({CL[c]} | {OL[o]}) = P({OL[o]}, {CL[c]}) / P({OL[o]}) "
+            f"= {p_oc(o, c)} / {denom} = {answer}."
+        )
+
+    else:  # cond_os_given_c
+        denom = p_c(c)
+        answer = p_osc(o, s, c) / denom
+        q = (
+            f"Given that a person is in **{CL[c]}**, "
+            f"what is the probability they are **{SL[s]}** and **{OL[o]}**?"
+        )
+        hint = (
+            f"P({SL[s]}, {OL[o]} | {CL[c]}) = P({OL[o]}, {SL[s]}, {CL[c]}) / P({CL[c]}) "
+            f"= {p_osc(o, s, c)} / {denom} = {answer}."
+        )
+
+    answer_str = str(answer)
+    prompt = (
+        f"The table shows joint probabilities for **{scenario['name']}**.\n\n"
+        f"{table_md}\n\n"
+        f"{q} Give a simplified fraction."
+    )
+
+    return GeneratedQuestion(
+        question_type="contingency_table_3d",
+        topic="probability",
+        subtopic="conditional-probability",
+        effort="medium",
+        prompt=prompt,
+        answer=answer_str,
+        answer_display=answer_str,
+        hint=hint,
+        grading=GradingSpec.fraction(),
+        metadata={
+            "scenario": scenario["name"],
+            "outcome_labels": outcome_labels,
+            "sex_labels": sex_labels,
+            "cabin_labels": cabin_labels,
+            "cabin_name": cabin_name,
+            "total": total,
+            "counts": counts,
+            "question_subtype": question_subtype,
+            "o": o,
+            "s": s,
+            "c": c,
+            "fraction": answer_str,
+        },
     )
 
 
@@ -1084,4 +1465,6 @@ GENERATORS = [
     at_most_k_heads,
     two_die_optimal_stop,
     total_probability_eye_color,
+    contingency_table_3d,
+    chain_rule_none_have_trait,
 ]
