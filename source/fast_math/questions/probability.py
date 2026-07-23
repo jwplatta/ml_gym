@@ -958,6 +958,85 @@ def two_die_optimal_stop(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+_CITY_NAME_POOLS = [
+    ["Aldara", "Brenholm", "Corvex", "Duskfen", "Eldris"],
+    ["Falmoor", "Grenth", "Havris", "Iravel", "Jorwick"],
+    ["Kish", "Kesh", "Kuara", "Lund", "Merath"],
+    ["Navik", "Orveth", "Paldur", "Quell", "Rethis"],
+    ["Solfen", "Tarmis", "Ulvra", "Vendis", "Wyreth"],
+]
+
+_EYE_COLORS = ["blue", "green", "hazel", "amber", "grey"]
+
+
+def total_probability_eye_color(rng: random.Random) -> GeneratedQuestion:
+    n_cities = rng.randint(2, 5)
+    city_pool = rng.choice(_CITY_NAME_POOLS)
+    cities = rng.sample(city_pool, k=n_cities)
+    eye_color = rng.choice(_EYE_COLORS)
+
+    # Populations: multiples of 500 between 500 and 5000
+    populations = [rng.randrange(500, 5001, 500) for _ in range(n_cities)]
+    total_pop = sum(populations)
+
+    # Eye color percentages: multiples of 1% between 1% and 40%
+    pct_ints = [rng.randint(1, 40) for _ in range(n_cities)]
+
+    # Exact computation via fractions
+    blue_eyed_people = sum(
+        Fraction(pop * pct, 100)
+        for pop, pct in zip(populations, pct_ints)
+    )
+    p_blue = blue_eyed_people / total_pop
+
+    # Format as a percentage value (e.g. 14.5 meaning 14.5%) rounded to 2 decimal places
+    p_blue_float = float(p_blue)
+    pct_value = round(p_blue_float * 100, 2)
+    answer = f"{pct_value:.2f}".rstrip("0").rstrip(".")
+
+    # Build prompt
+    city_lines = "; ".join(
+        f"{city} (pop {pop:,}, {pct}% {eye_color} eyes)"
+        for city, pop, pct in zip(cities, populations, pct_ints)
+    )
+    prompt = (
+        f"There are {n_cities} cities: {city_lines}. "
+        f"A person is chosen at random from the combined population. "
+        f"What is the probability they have {eye_color} eyes? "
+        f"Use the law of total probability and give your answer as a percentage (e.g. enter 14.5 for 14.5%), rounded to 2 decimal places."
+    )
+
+    # Build hint showing the weighted sum
+    weight_terms = " + ".join(
+        f"({pop:,}/{total_pop:,}) × {pct}%"
+        for pop, pct in zip(populations, pct_ints)
+    )
+    hint = (
+        f"P({eye_color}) = Σ P(city_i) × P({eye_color} | city_i). "
+        f"= {weight_terms}."
+    )
+
+    return GeneratedQuestion(
+        question_type="total_probability_eye_color",
+        topic="probability",
+        subtopic="total-probability",
+        effort="medium",
+        prompt=prompt,
+        answer=answer,
+        answer_display=f"{answer}%",
+        hint=hint,
+        grading=GradingSpec.numeric(tolerance=0.01),
+        metadata={
+            "cities": cities,
+            "populations": populations,
+            "pct_ints": pct_ints,
+            "eye_color": eye_color,
+            "total_pop": total_pop,
+            "fraction": str(p_blue),
+        },
+    )
+
+
 def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
     n = rng.randint(3, 8)
     k = rng.randint(0, n - 1)
@@ -1004,4 +1083,5 @@ GENERATORS = [
     tournament_one_and_three_meet_in_final,
     at_most_k_heads,
     two_die_optimal_stop,
+    total_probability_eye_color,
 ]
