@@ -1137,6 +1137,34 @@ def chain_rule_none_have_trait(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def exactly_k_heads_in_n_flips(rng: random.Random) -> GeneratedQuestion:
+    # n > k to avoid the trivial k=n case; n in 4..12, k in 1..n-2
+    n = rng.randint(4, 12)
+    k = rng.randint(1, n - 2)
+    ways = math.comb(n, k)
+    answer = Fraction(ways, 2**n)
+    answer_str = str(answer)
+    return GeneratedQuestion(
+        question_type="exactly_k_heads_in_n_flips",
+        topic="probability",
+        subtopic="probability-rules",
+        effort="low",
+        prompt=(
+            f"You flip a fair coin {n} times. "
+            f"What is the probability of getting exactly {k} heads? "
+            f"Give a simplified fraction."
+        ),
+        answer=answer_str,
+        answer_display=answer_str,
+        hint=(
+            f"Use the binomial formula: C({n},{k}) × (1/2)^{n}. "
+            f"C({n},{k}) = {ways}, so the answer is {ways}/{2**n} = {answer_str}."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={"n": n, "k": k, "ways": ways, "total": 2**n, "fraction": answer_str},
+    )
+
+
 def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
     n = rng.randint(3, 8)
     k = rng.randint(0, n - 1)
@@ -1467,4 +1495,5 @@ GENERATORS = [
     total_probability_eye_color,
     contingency_table_3d,
     chain_rule_none_have_trait,
+    exactly_k_heads_in_n_flips,
 ]
