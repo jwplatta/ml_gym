@@ -73,12 +73,18 @@ def normalize_answer(question: GeneratedQuestion, user_answer: str) -> str:
 def is_correct_answer(question: GeneratedQuestion, user_answer: str) -> tuple[bool, str]:
     kind = question.grading.kind
     normalized = normalize_answer(question, user_answer)
-    if not normalized:
+    if not normalized and kind != "numeric":
         return False, normalized
 
     if kind == "numeric":
         expected = normalize_numeric(question.answer)
         actual = normalize_numeric(user_answer)
+        # Accept fractional input (e.g. "7/4") for numeric questions
+        if actual is None:
+            frac = normalize_fraction(user_answer)
+            if frac is not None:
+                actual = Decimal(frac.numerator) / Decimal(frac.denominator)
+                normalized = str(actual)
         if expected is None or actual is None:
             return False, normalized
         tolerance = question.grading.tolerance
