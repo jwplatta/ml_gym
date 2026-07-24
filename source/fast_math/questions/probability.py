@@ -1270,6 +1270,13 @@ def _ct3_build_table_md(
             row_total = sum(table[o][s][c] for c in range(n_cabins))
             prefix = f"| **{outcome}** | {sex} |" if s == 0 else f"| | {sex} |"
             rows.append(f"{prefix} {cells} | {row_total} |")
+        # Outcome subtotal row: P(outcome) across all sexes and cabins
+        outcome_cabin_totals = [
+            sum(table[o][s][c] for s in range(2)) for c in range(n_cabins)
+        ]
+        outcome_total = sum(outcome_cabin_totals)
+        subtotal_cells = " | ".join(str(t) for t in outcome_cabin_totals)
+        rows.append(f"| ***{outcome} total*** | | {subtotal_cells} | **{outcome_total}** |")
 
     # Column totals (marginal over outcome and sex, by cabin)
     cabin_totals = [
