@@ -95,7 +95,14 @@ def is_correct_answer(question: GeneratedQuestion, user_answer: str) -> tuple[bo
     if kind == "fraction":
         expected = normalize_fraction(question.answer)
         actual = normalize_fraction(user_answer)
-        return expected == actual, normalized
+        if expected == actual:
+            return True, normalized
+        # Also accept a decimal approximation within 0.1% of the exact value
+        actual_num = normalize_numeric(user_answer)
+        if expected is not None and actual_num is not None:
+            expected_dec = Decimal(expected.numerator) / Decimal(expected.denominator)
+            return abs(expected_dec - actual_num) <= abs(expected_dec) * Decimal("0.001"), normalized
+        return False, normalized
 
     if kind == "compound_fraction_numeric":
         exp_parts = _split_compound(question.answer)
