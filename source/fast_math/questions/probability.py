@@ -130,7 +130,7 @@ def all_target_children_given_at_least_one(rng: random.Random) -> GeneratedQuest
         question_type="all_target_children_given_at_least_one",
         topic="probability",
         subtopic="bayes",
-        effort="medium",
+        effort="low",
         prompt=(
             f"There is a family with {children} children. Given that at least one child is a {target_gender}, "
             f"what is the probability that all {children} children are {target_gender}s? "
@@ -555,7 +555,7 @@ def fair_die_variance(rng: random.Random) -> GeneratedQuestion:
         question_type="fair_die_variance",
         topic="probability",
         subtopic="variance",
-        effort="medium",
+        effort="low",
         prompt=f"What is the variance of a fair {sides}-sided die roll? {answer_instruction}",
         answer=answer,
         answer_display=answer_display,
@@ -621,7 +621,7 @@ def sample_variance_from_dataset(rng: random.Random) -> GeneratedQuestion:
         question_type="sample_variance_from_dataset",
         topic="probability",
         subtopic="variance",
-        effort="medium",
+        effort="low",
         prompt=(
             f"What is the sample variance of the data set {values_text}? "
             f"{answer_instruction}"
@@ -654,7 +654,7 @@ def doubled_suit_card_expected_value(rng: random.Random) -> GeneratedQuestion:
         question_type="doubled_suit_card_expected_value",
         topic="probability",
         subtopic="expectation",
-        effort="medium",
+        effort="low",
         prompt=(
             f"You draw one card from a standard deck, with A=1, J=11, Q=12, K=13. "
             f"For {suit}, all card values are multiplied by {multiplier}. "

@@ -82,25 +82,50 @@ def build_quiz(
 
     rng = random.Random(seed)
 
-    # Build effort weight lookup
+    # Count generators per effort level so we can normalize weights to hit
+    # the target *distribution* rather than per-generator weight (which would
+    # be skewed by unequal pool sizes).
+    effort_counts: dict[str, int] = {}
+    for gen in generators:
+        e = _probe(gen).effort
+        effort_counts[e] = effort_counts.get(e, 0) + 1
+
     if effort_distribution:
-        effort_weights = {k: float(v) for k, v in effort_distribution.items()}
+        raw_weights = {k: float(v) for k, v in effort_distribution.items()}
     else:
-        effort_weights = {level: 1.0 / len(_EFFORT_LEVELS) for level in _EFFORT_LEVELS}
+        raw_weights = {level: 1.0 / len(_EFFORT_LEVELS) for level in _EFFORT_LEVELS}
+
+    # Per-generator weight = target share / number of generators at that level
+    effort_weights = {
+        level: raw_weights.get(level, 0.0) / count
+        for level, count in effort_counts.items()
+        if count > 0
+    }
 
     questions = []
-    used_types: set[str] = set()
-    available = list(generators)
+    # Track used types per effort level so each pool resets independently,
+    # preserving the target distribution even when no-repeat is on.
+    used_types_by_effort: dict[str, set[str]] = {e: set() for e in effort_counts}
 
     if use_weights and history:
         stats = question_type_stats(history)
     else:
         stats = {}
 
+    def _available() -> list:
+        if not allow_type_repeats:
+            return [
+                g for g in generators
+                if _probe(g).question_type not in used_types_by_effort.get(_probe(g).effort, set())
+            ]
+        return list(generators)
+
     while len(questions) < question_count:
+        available = _available()
         if not available:
+            # All pools exhausted — reset all and start over
+            used_types_by_effort = {e: set() for e in effort_counts}
             available = list(generators)
-            used_types.clear()
 
         weights = []
         for gen in available:
@@ -128,9 +153,15 @@ def build_quiz(
         questions.append(question)
 
         if not allow_type_repeats:
-            qt = question.question_type
-            used_types.add(qt)
-            available = [g for g in generators if _probe(g).question_type not in used_types]
+            effort = question.effort
+            used_types_by_effort[effort].add(question.question_type)
+            # If this effort level's pool is exhausted, reset just that level
+            if not any(
+                _probe(g).question_type not in used_types_by_effort[effort]
+                for g in generators
+                if _probe(g).effort == effort
+            ):
+                used_types_by_effort[effort] = set()
     return ActiveQuiz(
         quiz_id=str(uuid4()),
         started_at=utc_now_iso(),
