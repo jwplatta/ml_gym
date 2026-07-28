@@ -291,10 +291,64 @@ def two_urn_bayes_draw(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def jar_chip_optimal_stop(rng: random.Random) -> GeneratedQuestion:
+    N = rng.choice([10, 20, 50, 100])
+    c = rng.choice([1, 2, 5])
+
+    # V(t) = (t + N) / 2 - c * (t - 1) / (N - t + 1)
+    # Find integer t* in [1, N] that maximizes V(t).
+    # t=1 means always cash out immediately (never redraw), V = (1+N)/2.
+    # t=N means only cash out on N.
+    best_t = 1
+    best_v = Fraction(1 + N, 2)
+    for t in range(1, N + 1):
+        k = N - t + 1  # number of chips you'd cash out on
+        if k == 0:
+            continue
+        v = Fraction(t + N, 2) - Fraction(c * (t - 1), k)
+        if v > best_v:
+            best_v = v
+            best_t = t
+
+    t_str = str(best_t)
+    v_decimal = f"{float(best_v):.4f}".rstrip("0").rstrip(".")
+
+    return GeneratedQuestion(
+        question_type="jar_chip_optimal_stop",
+        topic="games",
+        subtopic="optimal-stopping",
+        effort="high",
+        prompt=(
+            f"A jar contains {N} chips labeled 1 through {N}. "
+            f"Each round you pay ${c} to draw a chip at random. "
+            f"You may then cash out the chip's value in dollars (ending the game) "
+            f"or put the chip back and draw again next round. "
+            f"Playing optimally, what is your cash-out threshold and expected net payout? "
+            f"Enter as: threshold, EV  (threshold as an integer, EV as a decimal rounded to 4 significant figures)."
+        ),
+        answer=f"{t_str},{v_decimal}",
+        answer_display=f"Cash out at {t_str}, EV = {v_decimal}",
+        hint=(
+            f"Use a threshold strategy: cash out when chip ≥ t, else redraw. "
+            f"For threshold t, V(t) = (t + {N}) / 2 - {c} * (t - 1) / ({N} - t + 1). "
+            f"Try a few values of t and pick the one maximizing V(t). "
+            f"Optimal t* = {best_t}."
+        ),
+        grading=GradingSpec.compound_fraction_numeric(tolerance=0.01),
+        metadata={
+            "N": N,
+            "c": c,
+            "threshold": best_t,
+            "ev": v_decimal,
+        },
+    )
+
+
 GENERATORS = [
     proportional_allocation_game,
     coin_match_game,
     random_ttt_game,
     die_bust_optimal_stop,
     two_urn_bayes_draw,
+    jar_chip_optimal_stop,
 ]
