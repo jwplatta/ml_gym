@@ -1003,7 +1003,7 @@ def total_probability_eye_color(rng: random.Random) -> GeneratedQuestion:
         f"There are {n_cities} cities: {city_lines}. "
         f"A person is chosen at random from the combined population. "
         f"What is the probability they have {eye_color} eyes? "
-        f"Use the law of total probability and give your answer as a percentage (e.g. enter 14.5 for 14.5%), rounded to 2 decimal places."
+        f"Give your answer as a percentage (e.g. enter 14.5 for 14.5%), rounded to 2 decimal places."
     )
 
     # Build hint showing the weighted sum
