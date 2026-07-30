@@ -649,7 +649,8 @@ def doubled_suit_card_expected_value(rng: random.Random) -> GeneratedQuestion:
     multiplier = rng.choice([2, 3, 4])
     base_average = Fraction(1 + 13, 2)
     expectation = base_average * Fraction(3 + multiplier, 4)
-    answer, answer_display, answer_instruction, grading = choose_expectation_answer_format(expectation)
+    decimal_answer = f"{float(expectation):.4f}".rstrip("0").rstrip(".")
+    fraction_answer = str(expectation)
     return GeneratedQuestion(
         question_type="doubled_suit_card_expected_value",
         topic="probability",
@@ -658,22 +659,21 @@ def doubled_suit_card_expected_value(rng: random.Random) -> GeneratedQuestion:
         prompt=(
             f"You draw one card from a standard deck, with A=1, J=11, Q=12, K=13. "
             f"For {suit}, all card values are multiplied by {multiplier}. "
-            f"What is the expected value of the card? {answer_instruction}"
+            f"What is the expected value of the card? Give a decimal or simplified fraction."
         ),
-        answer=answer,
-        answer_display=answer_display,
+        answer=decimal_answer,
+        answer_display=f"{decimal_answer} (= {fraction_answer})",
         hint=(
             "Condition on whether the card is in the special suit. "
             "The average card value in any suit is the same, so multiply that average for the special suit, "
             "then take the weighted average with probability 1/4 versus 3/4."
         ),
-        grading=grading,
+        grading=GradingSpec.numeric(tolerance=0.01),
         metadata={
             "suit": suit,
             "multiplier": multiplier,
             "base_average": str(base_average),
             "fraction": str(expectation),
-            "answer_format": grading.kind,
         },
     )
 
