@@ -29,6 +29,21 @@ DEFAULT_CATEGORIES = [
     "python",
 ]
 
+# Fixed colors per topic for consistent chart rendering
+TOPIC_COLORS = {
+    "probability":       "#4C72B0",
+    "statistics":        "#DD8452",
+    "machine_learning":  "#55A868",
+    "deep_learning":     "#C44E52",
+    "pandas":            "#8172B2",
+    "numpy":             "#937860",
+    "linear_algebra":    "#DA8BC3",
+    "algorithms":        "#8C8C8C",
+    "finance":           "#CCB974",
+    "python":            "#64B5CD",
+}
+TOPIC_COLOR_FALLBACK = "#AAAAAA"
+
 # Streamlit page configuration
 PAGE_TITLE = "ML Gym Practice Dashboard"
 PAGE_ICON = "📊"

@@ -3,6 +3,8 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from dashboard.config import TOPIC_COLOR_FALLBACK, TOPIC_COLORS
+
 
 def create_category_bar_chart(category_breakdown: dict[str, int]):
     """
@@ -39,7 +41,7 @@ def create_category_bar_chart(category_breakdown: dict[str, int]):
 
     # Create horizontal bar chart
     sns.set_style("whitegrid")
-    colors = sns.color_palette("husl", len(categories))
+    colors = [TOPIC_COLORS.get(cat, TOPIC_COLOR_FALLBACK) for cat in categories]
 
     bars = ax.barh(categories, counts, color=colors, edgecolor="black", linewidth=0.5)
 
@@ -99,7 +101,7 @@ def create_category_pie_chart(category_breakdown: dict[str, int]):
     # Create figure
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    colors = sns.color_palette("husl", len(categories))
+    colors = [TOPIC_COLORS.get(cat, TOPIC_COLOR_FALLBACK) for cat in categories]
 
     wedges, texts, autotexts = ax.pie(
         counts,
