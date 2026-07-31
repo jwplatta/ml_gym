@@ -40,8 +40,8 @@ def addition_rounding(rng: random.Random) -> GeneratedQuestion:
         round_a = a - adj
         hint = (
             f"Round {a} to {round_a} (adjust by {adj:+d}). "
-            f"Compute {round_a} + {b} = {round_a + b}, "
-            f"then correct: {round_a + b} + ({adj}) = {a + b}."
+            f"Compute {round_a} + {b}, "
+            f"then correct by adding back the adjustment ({adj:+d})."
         )
     else:
         a = _rand_n_digits(rng, digits_a)
@@ -49,8 +49,8 @@ def addition_rounding(rng: random.Random) -> GeneratedQuestion:
         round_b = b - adj
         hint = (
             f"Round {b} to {round_b} (adjust by {adj:+d}). "
-            f"Compute {a} + {round_b} = {a + round_b}, "
-            f"then correct: {a + round_b} + ({adj}) = {a + b}."
+            f"Compute {a} + {round_b}, "
+            f"then correct by adding back the adjustment ({adj:+d})."
         )
     answer = a + b
     return GeneratedQuestion(
@@ -82,7 +82,7 @@ def addition_digit_matching(rng: random.Random) -> GeneratedQuestion:
         if av == 0 and bv == 0:
             continue
         steps.append(f"{av * mult} + {bv * mult} = {(av + bv) * mult}")
-    hint = "Add place by place, then sum: " + ", ".join(steps) + f" → {answer}."
+    hint = "Add place by place, then sum the results: " + ", ".join(steps) + "."
 
     return GeneratedQuestion(
         question_type="addition_digit_matching",
@@ -109,8 +109,8 @@ def subtraction_rounding(rng: random.Random) -> GeneratedQuestion:
     answer = a - b
     hint = (
         f"Round {b} to {round_b} (adjust by {adj:+d}). "
-        f"Compute {a} - {round_b} = {a - round_b}, "
-        f"then correct: {a - round_b} - ({adj}) = {answer}."
+        f"Compute {a} - {round_b}, "
+        f"then correct by subtracting the adjustment ({adj:+d})."
     )
     return GeneratedQuestion(
         question_type="subtraction_rounding",
@@ -143,7 +143,7 @@ def subtraction_digit_matching(rng: random.Random) -> GeneratedQuestion:
         if av == 0 and bv == 0:
             continue
         steps.append(f"{av * mult} - {bv * mult} = {(av - bv) * mult}")
-    hint = "Subtract place by place, then sum: " + ", ".join(steps) + f" → {answer}."
+    hint = "Subtract place by place, then sum the results: " + ", ".join(steps) + "."
 
     return GeneratedQuestion(
         question_type="subtraction_digit_matching",
@@ -159,9 +159,45 @@ def subtraction_digit_matching(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def _rand_decimal(rng: random.Random, digits: int) -> float:
+    """Return a positive decimal with 1–3 integer digits and 0–2 decimal places."""
+    integer_part = _rand_n_digits(rng, digits)
+    decimal_places = rng.randint(0, 2)
+    if decimal_places == 0:
+        return float(integer_part)
+    fractional_part = rng.randint(1, 10 ** decimal_places - 1)
+    return round(integer_part + fractional_part / (10 ** decimal_places), decimal_places)
+
+
+def _fmt(value: float) -> str:
+    """Format a decimal, stripping unnecessary trailing zeros."""
+    return f"{value:.2f}".rstrip("0").rstrip(".")
+
+
+def decimal_subtraction(rng: random.Random) -> GeneratedQuestion:
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a = _rand_decimal(rng, digits_a)
+    b = _rand_decimal(rng, digits_b)
+    answer = round(a - b, 2)
+    answer_str = _fmt(answer)
+    return GeneratedQuestion(
+        question_type="decimal_subtraction",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="low",
+        prompt=f"{_fmt(a)} - {_fmt(b)} =",
+        answer=answer_str,
+        answer_display=answer_str,
+        hint="Align the decimal points and subtract column by column.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
 GENERATORS = [
     addition_rounding,
     addition_digit_matching,
     subtraction_rounding,
     subtraction_digit_matching,
+    decimal_subtraction,
 ]
