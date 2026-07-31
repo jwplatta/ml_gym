@@ -108,7 +108,7 @@ def equal_heads_n_flips(rng: random.Random) -> GeneratedQuestion:
         question_type="equal_heads_n_flips",
         topic="probability",
         subtopic="probability-rules",
-        effort="medium",
+        effort="low" if flips <= 3 else "medium",
         prompt=f"You and your opponent each flip a fair coin {flips} times. What is the probability that you get the same number of heads? Give a simplified fraction.",
         answer=f"{result.numerator}/{result.denominator}",
         answer_display=f"{result.numerator}/{result.denominator}",
@@ -122,33 +122,47 @@ def equal_heads_n_flips(rng: random.Random) -> GeneratedQuestion:
     )
 
 
-def all_target_children_given_at_least_one(rng: random.Random) -> GeneratedQuestion:
-    children = rng.randint(2, 4)
+def at_least_x_given_exactly_y_children(rng: random.Random) -> GeneratedQuestion:
+    children = rng.randint(5, 10)
     target_gender = rng.choice(["girl", "boy"])
-    answer = Fraction(1, 2**children - 1)
+    # X: at least X are target gender; must leave room for Y in (X+1, N-1)
+    x_max = min(6, children - 2)
+    x = rng.randint(1, x_max)
+    # Y: exactly Y are target gender; X < Y < N
+    y = rng.randint(x + 1, children - 1)
+
+    favorable = math.comb(children, y)
+    conditional_outcomes = sum(math.comb(children, k) for k in range(x, children + 1))
+    answer = Fraction(favorable, conditional_outcomes)
+
+    gender_plural = f"{target_gender}s"
     return GeneratedQuestion(
-        question_type="all_target_children_given_at_least_one",
+        question_type="at_least_x_given_exactly_y_children",
         topic="probability",
         subtopic="bayes",
-        effort="low",
+        effort="medium",
         prompt=(
-            f"There is a family with {children} children. Given that at least one child is a {target_gender}, "
-            f"what is the probability that all {children} children are {target_gender}s? "
+            f"There is a family with {children} children. "
+            f"Given that at least {x} {'child is a ' + target_gender if x == 1 else 'children are ' + gender_plural}, "
+            f"what is the probability that exactly {y} children are {gender_plural}? "
             "Give a simplified fraction."
         ),
         answer=str(answer),
         answer_display=str(answer),
         hint=(
-            "List or count all equally likely gender outcomes. "
-            f"Remove the one case with no {target_gender}s. "
-            f"Among the remaining cases, only one has all {children} children as {target_gender}s."
+            f"The conditional sample space is all outcomes with at least {x} {gender_plural}: "
+            f"sum C({children}, k) for k = {x} to {children}, giving {conditional_outcomes} outcomes. "
+            f"The favorable outcomes are exactly C({children}, {y}) = {favorable}. "
+            f"P = {favorable}/{conditional_outcomes} = {answer}."
         ),
         grading=GradingSpec.fraction(),
         metadata={
             "children": children,
             "target_gender": target_gender,
-            "conditional_outcomes": 2**children - 1,
-            "favorable_outcomes": 1,
+            "x": x,
+            "y": y,
+            "favorable_outcomes": favorable,
+            "conditional_outcomes": conditional_outcomes,
             "fraction": str(answer),
         },
     )
@@ -1366,43 +1380,43 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
     if question_subtype == "joint_3way":
         answer = p_osc(o, s, c)
         q = f"What is the probability that a randomly selected person is **{SL[s]}**, **{OL[o]}**, and in **{CL[c]}**?"
-        hint = f"P({OL[o]}, {SL[s]}, {CL[c]}) is read directly from the table: {answer}."
+        hint = f"P({OL[o]}, {SL[s]}, {CL[c]}) is read directly from the table."
 
     elif question_subtype == "joint_os":
         answer = p_os(o, s)
         terms = " + ".join(str(table[o][s][c2]) for c2 in range(n_cabins))
         q = f"What is the probability that a randomly selected person is **{SL[s]}** and **{OL[o]}**?"
-        hint = f"P({OL[o]}, {SL[s]}) = sum over all {cabin_name}s: {terms} = {answer}."
+        hint = f"P({OL[o]}, {SL[s]}) = sum over all {cabin_name}s: {terms}."
 
     elif question_subtype == "joint_oc":
         answer = p_oc(o, c)
         terms = " + ".join(str(table[o][s2][c]) for s2 in range(2))
         q = f"What is the probability that a randomly selected person is **{OL[o]}** and in **{CL[c]}**?"
-        hint = f"P({OL[o]}, {CL[c]}) = sum over both sexes: {terms} = {answer}."
+        hint = f"P({OL[o]}, {CL[c]}) = sum over both sexes: {terms}."
 
     elif question_subtype == "joint_sc":
         answer = p_sc(s, c)
         terms = " + ".join(str(table[o2][s][c]) for o2 in range(2))
         q = f"What is the probability that a randomly selected person is **{SL[s]}** and in **{CL[c]}**?"
-        hint = f"P({SL[s]}, {CL[c]}) = sum over both outcomes: {terms} = {answer}."
+        hint = f"P({SL[s]}, {CL[c]}) = sum over both outcomes: {terms}."
 
     elif question_subtype == "marginal_o":
         answer = p_o(o)
         terms = " + ".join(str(table[o][s2][c2]) for s2 in range(2) for c2 in range(n_cabins))
         q = f"What is the probability that a randomly selected person is **{OL[o]}**?"
-        hint = f"P({OL[o]}) = sum all cells in the '{OL[o]}' rows: {terms} = {answer}."
+        hint = f"P({OL[o]}) = sum all cells in the '{OL[o]}' rows: {terms}."
 
     elif question_subtype == "marginal_s":
         answer = p_s(s)
         terms = " + ".join(str(table[o2][s][c2]) for o2 in range(2) for c2 in range(n_cabins))
         q = f"What is the probability that a randomly selected person is **{SL[s]}**?"
-        hint = f"P({SL[s]}) = sum all cells in the '{SL[s]}' rows: {terms} = {answer}."
+        hint = f"P({SL[s]}) = sum all cells in the '{SL[s]}' rows: {terms}."
 
     elif question_subtype == "marginal_c":
         answer = p_c(c)
         terms = " + ".join(str(table[o2][s2][c]) for o2 in range(2) for s2 in range(2))
         q = f"What is the probability that a randomly selected person is in **{CL[c]}**?"
-        hint = f"P({CL[c]}) = sum all cells in the '{CL[c]}' column: {terms} = {answer}."
+        hint = f"P({CL[c]}) = sum all cells in the '{CL[c]}' column: {terms}."
 
     elif question_subtype == "cond_o_given_s":
         denom = p_s(s)
@@ -1410,7 +1424,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         q = f"Given that a person is **{SL[s]}**, what is the probability they are **{OL[o]}**?"
         hint = (
             f"P({OL[o]} | {SL[s]}) = P({OL[o]}, {SL[s]}) / P({SL[s]}) "
-            f"= {p_os(o, s)} / {denom} = {answer}."
+            f"= {p_os(o, s)} / {denom}."
         )
 
     elif question_subtype == "cond_o_given_c":
@@ -1419,7 +1433,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         q = f"Given that a person is in **{CL[c]}**, what is the probability they are **{OL[o]}**?"
         hint = (
             f"P({OL[o]} | {CL[c]}) = P({OL[o]}, {CL[c]}) / P({CL[c]}) "
-            f"= {p_oc(o, c)} / {denom} = {answer}."
+            f"= {p_oc(o, c)} / {denom}."
         )
 
     elif question_subtype == "cond_o_given_sc":
@@ -1431,7 +1445,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         )
         hint = (
             f"P({OL[o]} | {SL[s]}, {CL[c]}) = P({OL[o]}, {SL[s]}, {CL[c]}) / P({SL[s]}, {CL[c]}) "
-            f"= {p_osc(o, s, c)} / {denom} = {answer}."
+            f"= {p_osc(o, s, c)} / {denom}."
         )
 
     elif question_subtype == "cond_s_given_o":
@@ -1440,7 +1454,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         q = f"Given that a person is **{OL[o]}**, what is the probability they are **{SL[s]}**?"
         hint = (
             f"P({SL[s]} | {OL[o]}) = P({OL[o]}, {SL[s]}) / P({OL[o]}) "
-            f"= {p_os(o, s)} / {denom} = {answer}."
+            f"= {p_os(o, s)} / {denom}."
         )
 
     elif question_subtype == "cond_c_given_o":
@@ -1449,7 +1463,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         q = f"Given that a person is **{OL[o]}**, what is the probability they are in **{CL[c]}**?"
         hint = (
             f"P({CL[c]} | {OL[o]}) = P({OL[o]}, {CL[c]}) / P({OL[o]}) "
-            f"= {p_oc(o, c)} / {denom} = {answer}."
+            f"= {p_oc(o, c)} / {denom}."
         )
 
     else:  # cond_os_given_c
@@ -1461,7 +1475,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
         )
         hint = (
             f"P({SL[s]}, {OL[o]} | {CL[c]}) = P({OL[o]}, {SL[s]}, {CL[c]}) / P({CL[c]}) "
-            f"= {p_osc(o, s, c)} / {denom} = {answer}."
+            f"= {p_osc(o, s, c)} / {denom}."
         )
 
     answer_str = str(answer)
@@ -1501,7 +1515,7 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
 GENERATORS = [
     even_or_prime_die_roll,
     equal_heads_n_flips,
-    all_target_children_given_at_least_one,
+    at_least_x_given_exactly_y_children,
     double_headed_coin_given_heads,
     painted_cube_hidden_red_given_visible_white,
     pocket_queens,
