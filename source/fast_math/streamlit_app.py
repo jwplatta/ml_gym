@@ -15,6 +15,17 @@ from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_
 from source.fast_math.registry import get_topics
 from source.fast_math.storage import append_quiz_attempt, load_quiz_history
 
+_TOPIC_COLORS = {
+    "addition-subtraction": "#4C72B0",
+    "consecutive-sums":     "#DD8452",
+    "counting":             "#55A868",
+    "division":             "#C44E52",
+    "games":                "#8172B2",
+    "multiplication":       "#937860",
+    "probability":          "#DA8BC3",
+    "squaring":             "#CCB974",
+}
+
 
 def run() -> None:
     st.set_page_config(page_title="Fast Math", page_icon="🧠", layout="wide")
@@ -89,6 +100,7 @@ def render_dashboard() -> None:
         x="date",
         y="questions_completed",
         color="topic",
+        color_discrete_map=_TOPIC_COLORS,
         title="Questions Answered Per Day",
     )
     activity_chart.update_layout(
