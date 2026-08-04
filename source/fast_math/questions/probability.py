@@ -1512,6 +1512,158 @@ def contingency_table_3d(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+# Nice (1-p) values with clean k-th roots, stored as (p_pct_display, 1-p as Fraction)
+_RAIN_PARAMS = {
+    2: [  # perfect squares
+        ("36%",  Fraction(64, 100)),
+        ("51%",  Fraction(49, 100)),
+        ("64%",  Fraction(36, 100)),
+        ("75%",  Fraction(25, 100)),
+        ("84%",  Fraction(16, 100)),
+        ("91%",  Fraction(9,  100)),
+        ("96%",  Fraction(4,  100)),
+    ],
+    3: [  # perfect cubes
+        ("48.8%", Fraction(512, 1000)),
+        ("65.7%", Fraction(343, 1000)),
+        ("78.4%", Fraction(216, 1000)),
+        ("87.5%", Fraction(125, 1000)),
+        ("93.6%", Fraction(64,  1000)),
+        ("97.3%", Fraction(27,  1000)),
+        ("99.2%", Fraction(8,   1000)),
+    ],
+    4: [  # perfect 4th powers
+        ("75.99%", Fraction(2401, 10000)),
+        ("87.04%", Fraction(1296, 10000)),
+        ("93.75%", Fraction(625,  10000)),
+        ("97.44%", Fraction(256,  10000)),
+        ("99.19%", Fraction(81,   10000)),
+        ("99.84%", Fraction(16,   10000)),
+    ],
+}
+
+_RAIN_WINDOWS = [
+    (1, "hour",    {2: "half hour",    3: "20 minutes", 4: "quarter hour"}),
+    (2, "2 hours", {2: "hour",         3: "40 minutes", 4: "half hour"}),
+    (3, "3 hours", {2: "90 minutes",   3: "hour",       4: "45 minutes"}),
+]
+
+
+def rain_sub_interval_probability(rng: random.Random) -> GeneratedQuestion:
+    k = rng.choice([2, 3, 4])
+    window_hours, window_label, sub_labels = rng.choice(_RAIN_WINDOWS)
+    sub_label = sub_labels[k]
+    p_pct_display, q_full = rng.choice(_RAIN_PARAMS[k])
+
+    # P(no rain in sub-interval) = q_full^(1/k)
+    # P(rain in sub-interval) = 1 - q_full^(1/k)
+    q_sub = float(q_full) ** (1 / k)
+    p_sub = 1 - q_sub
+    answer = round(p_sub * 100, 2)
+    answer_str = f"{answer:.2f}".rstrip("0").rstrip(".")
+
+    return GeneratedQuestion(
+        question_type="rain_sub_interval_probability",
+        topic="probability",
+        subtopic="probability-rules",
+        effort="low",
+        prompt=(
+            f"The chance it'll rain in the next {window_label} is {p_pct_display}. "
+            f"What is the chance it'll rain in the next {sub_label}? "
+            f"Give your answer as a percentage rounded to 2 decimal places."
+        ),
+        answer=answer_str,
+        answer_display=f"{answer_str}%",
+        hint=(
+            f"Let q = P(no rain in {sub_label}). "
+            f"Then q^{k} = P(no rain in {window_label}) = 1 - {p_pct_display}. "
+            f"Solve for q, then P(rain in {sub_label}) = 1 - q."
+        ),
+        grading=GradingSpec.numeric(tolerance=0.01),
+        metadata={
+            "k": k,
+            "window_label": window_label,
+            "sub_label": sub_label,
+            "p_full_pct": p_pct_display,
+            "q_full": str(q_full),
+            "answer_pct": answer_str,
+        },
+    )
+
+
+def phone_number_permutation_pvalue(rng: random.Random) -> GeneratedQuestion:
+    # Retry until we get a combination that gives a non-degenerate p-value
+    for _ in range(50):
+        n_friends = rng.choice([10, 100, 150, 200])
+        perm_length = rng.choice([2, 3, 4])
+        k_matches = rng.choice([2, 3, 4, 5])
+        p_trial = math.factorial(perm_length) / (10 ** perm_length)
+        expected = n_friends * p_trial
+        # k_matches should be plausible: between 0.5x and 5x the expected count
+        if 0.5 * expected <= k_matches <= 5 * expected:
+            break
+
+    # Sample distinct digits for the permutation
+    digits = rng.sample(range(10), perm_length)
+    digits_str = ", ".join(str(d) for d in digits)
+
+    # P(last perm_length digits are a permutation of chosen digits)
+    # = perm_length! / 10^perm_length
+    favorable = math.factorial(perm_length)
+    total = 10 ** perm_length
+    p = Fraction(favorable, total)
+    q = 1 - p
+
+    # P(N >= k_matches) = 1 - P(N < k_matches) = 1 - sum_{i=0}^{k_matches-1} C(n,i)*p^i*q^(n-i)
+    p_float = float(p)
+    q_float = float(q)
+    p_less = sum(
+        math.comb(n_friends, i) * (p_float ** i) * (q_float ** (n_friends - i))
+        for i in range(k_matches)
+    )
+    pvalue = 1 - p_less
+    answer = round(pvalue, 4)
+    answer_str = f"{answer:.4f}".rstrip("0").rstrip(".")
+
+    # Build the term expansion for the hint
+    terms = " + ".join(
+        f"C({n_friends},{i})·({p})^{i}·({q})^{n_friends - i}"
+        for i in range(k_matches)
+    )
+
+    return GeneratedQuestion(
+        question_type="phone_number_permutation_pvalue",
+        topic="probability",
+        subtopic="probability-rules",
+        effort="medium",
+        prompt=(
+            f"If {k_matches} of my {n_friends} friends have phone numbers whose last {perm_length} digits "
+            f"form some permutation of {{{digits_str}}}, is that just a chance occurrence? "
+            f"Assume each digit is chosen uniformly at random. "
+            f"Compute the one-sided p-value P(N ≥ {k_matches}) under the null hypothesis that phone numbers are random, "
+            f"rounded to 4 decimal places. Then reflect: does this suggest the event is due to chance?"
+        ),
+        answer=answer_str,
+        answer_display=answer_str,
+        hint=(
+            f"Under H₀, P(last {perm_length} digits are a permutation of {{{digits_str}}}) = "
+            f"{perm_length}! / 10^{perm_length} = {favorable}/{total} = {p}. "
+            f"N ~ Bin({n_friends}, {p}). "
+            f"P(N ≥ {k_matches}) = 1 - P(N < {k_matches}) = 1 - ({terms}). "
+            f"Compare the result to 0.05 to judge significance."
+        ),
+        grading=GradingSpec.numeric(tolerance=0.0001),
+        metadata={
+            "n_friends": n_friends,
+            "perm_length": perm_length,
+            "k_matches": k_matches,
+            "digits": digits,
+            "p": str(p),
+            "pvalue": answer_str,
+        },
+    )
+
+
 GENERATORS = [
     even_or_prime_die_roll,
     equal_heads_n_flips,
@@ -1542,4 +1694,6 @@ GENERATORS = [
     contingency_table_3d,
     chain_rule_none_have_trait,
     exactly_k_heads_in_n_flips,
+    rain_sub_interval_probability,
+    phone_number_permutation_pvalue,
 ]
