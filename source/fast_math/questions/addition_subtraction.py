@@ -2,10 +2,8 @@ import random
 
 from source.fast_math.models import GeneratedQuestion, GradingSpec
 
-# Shapes: (digits_a, digits_b)
-_SHAPES = [(3, 1), (3, 2), (3, 3), (2, 2), (2, 1)]
-
 _DIGIT_RANGES = {1: (1, 9), 2: (10, 99), 3: (100, 999)}
+_SHAPES = [(3, 2), (3, 3), (2, 2)]
 
 
 def _rand_n_digits(rng: random.Random, digits: int) -> int:
@@ -13,191 +11,326 @@ def _rand_n_digits(rng: random.Random, digits: int) -> int:
     return rng.randint(lo, hi)
 
 
-def _near_round(rng: random.Random, digits: int) -> tuple[int, int]:
-    """Return (value, adjustment) where value is within 1-4 of a round number."""
-    if digits == 1:
-        base = rng.choice([10, 20, 30])
-    elif digits == 2:
-        base = rng.choice([20, 30, 40, 50, 60, 70, 80, 90, 100])
-    else:
-        base = rng.choice([200, 300, 400, 500, 600, 700, 800, 900, 1000])
-    adjustment = rng.randint(1, 4)
-    direction = rng.choice([-1, 1])
-    value = base + direction * adjustment
-    # keep value positive and within digit range
-    lo, hi = _DIGIT_RANGES[digits]
-    value = max(lo, min(hi, value))
-    actual_adjustment = value - base
-    return value, actual_adjustment
-
-
-def addition_rounding(rng: random.Random) -> GeneratedQuestion:
-    digits_a, digits_b = rng.choice(_SHAPES)
-    # at least one operand should be near a round number
-    if rng.random() < 0.5:
-        a, adj = _near_round(rng, digits_a)
-        b = _rand_n_digits(rng, digits_b)
-        round_a = a - adj
-        hint = (
-            f"Round {a} to {round_a} (adjust by {adj:+d}). "
-            f"Compute {round_a} + {b}, "
-            f"then correct by adding back the adjustment ({adj:+d})."
-        )
-    else:
-        a = _rand_n_digits(rng, digits_a)
-        b, adj = _near_round(rng, digits_b)
-        round_b = b - adj
-        hint = (
-            f"Round {b} to {round_b} (adjust by {adj:+d}). "
-            f"Compute {a} + {round_b}, "
-            f"then correct by adding back the adjustment ({adj:+d})."
-        )
-    answer = a + b
-    return GeneratedQuestion(
-        question_type="addition_rounding",
-        topic="addition-subtraction",
-        subtopic="addition",
-        effort="low",
-        prompt=f"{a} + {b} =",
-        answer=str(answer),
-        answer_display=str(answer),
-        hint=hint,
-        grading=GradingSpec.numeric(),
-        metadata={"a": a, "b": b},
-    )
-
-
-def addition_digit_matching(rng: random.Random) -> GeneratedQuestion:
-    digits_a, digits_b = rng.choice(_SHAPES)
-    a = _rand_n_digits(rng, digits_a)
-    b = _rand_n_digits(rng, digits_b)
-    answer = a + b
-
-    # Build matching breakdown hint
-    a_digits = [(a // 100) % 10, (a // 10) % 10, a % 10]
-    b_digits = [(b // 100) % 10, (b // 10) % 10, b % 10]
-    multipliers = [100, 10, 1]
-    steps = []
-    for av, bv, mult in zip(a_digits, b_digits, multipliers, strict=True):
-        if av == 0 and bv == 0:
-            continue
-        steps.append(f"{av * mult} + {bv * mult} = {(av + bv) * mult}")
-    hint = "Add place by place, then sum the results: " + ", ".join(steps) + "."
-
-    return GeneratedQuestion(
-        question_type="addition_digit_matching",
-        topic="addition-subtraction",
-        subtopic="addition",
-        effort="low",
-        prompt=f"{a} + {b} =",
-        answer=str(answer),
-        answer_display=str(answer),
-        hint=hint,
-        grading=GradingSpec.numeric(),
-        metadata={"a": a, "b": b},
-    )
-
-
-def subtraction_rounding(rng: random.Random) -> GeneratedQuestion:
-    digits_a, digits_b = rng.choice(_SHAPES)
-    # ensure a > b so result is positive
-    a = _rand_n_digits(rng, digits_a)
-    b, adj = _near_round(rng, digits_b)
-    # keep b < a
-    b = min(b, a - 1)
-    round_b = b - adj
-    answer = a - b
-    hint = (
-        f"Round {b} to {round_b} (adjust by {adj:+d}). "
-        f"Compute {a} - {round_b}, "
-        f"then correct by subtracting the adjustment ({adj:+d})."
-    )
-    return GeneratedQuestion(
-        question_type="subtraction_rounding",
-        topic="addition-subtraction",
-        subtopic="subtraction",
-        effort="low",
-        prompt=f"{a} - {b} =",
-        answer=str(answer),
-        answer_display=str(answer),
-        hint=hint,
-        grading=GradingSpec.numeric(),
-        metadata={"a": a, "b": b},
-    )
-
-
-def subtraction_digit_matching(rng: random.Random) -> GeneratedQuestion:
-    digits_a, digits_b = rng.choice(_SHAPES)
-    a = _rand_n_digits(rng, digits_a)
-    b = _rand_n_digits(rng, digits_b)
-    # ensure a > b
-    if b >= a:
-        a, b = max(a, b) + rng.randint(1, 10), min(a, b)
-    answer = a - b
-
-    a_digits = [(a // 100) % 10, (a // 10) % 10, a % 10]
-    b_digits = [(b // 100) % 10, (b // 10) % 10, b % 10]
-    multipliers = [100, 10, 1]
-    steps = []
-    for av, bv, mult in zip(a_digits, b_digits, multipliers, strict=True):
-        if av == 0 and bv == 0:
-            continue
-        steps.append(f"{av * mult} - {bv * mult} = {(av - bv) * mult}")
-    hint = "Subtract place by place, then sum the results: " + ", ".join(steps) + "."
-
-    return GeneratedQuestion(
-        question_type="subtraction_digit_matching",
-        topic="addition-subtraction",
-        subtopic="subtraction",
-        effort="low",
-        prompt=f"{a} - {b} =",
-        answer=str(answer),
-        answer_display=str(answer),
-        hint=hint,
-        grading=GradingSpec.numeric(),
-        metadata={"a": a, "b": b},
-    )
-
-
-def _rand_decimal(rng: random.Random, digits: int) -> float:
-    """Return a positive decimal with 1–3 integer digits and 0–2 decimal places."""
+def _rand_decimal(rng: random.Random, digits: int, decimal_places: int) -> float:
     integer_part = _rand_n_digits(rng, digits)
-    decimal_places = rng.randint(0, 2)
-    if decimal_places == 0:
-        return float(integer_part)
     fractional_part = rng.randint(1, 10 ** decimal_places - 1)
     return round(integer_part + fractional_part / (10 ** decimal_places), decimal_places)
 
 
 def _fmt(value: float) -> str:
-    """Format a decimal, stripping unnecessary trailing zeros."""
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
 
-def decimal_subtraction(rng: random.Random) -> GeneratedQuestion:
+def _has_carrying(a: float, b: float) -> bool:
+    a_cents = round(a * 100)
+    b_cents = round(b * 100)
+    carry = 0
+    for _ in range(7):
+        col_sum = (a_cents % 10) + (b_cents % 10) + carry
+        if col_sum >= 10:
+            return True
+        carry = col_sum // 10
+        a_cents //= 10
+        b_cents //= 10
+    return False
+
+
+def _has_borrowing(a: int, b: int) -> bool:
+    """True if subtracting b from a requires borrowing in any column."""
+    while a > 0 or b > 0:
+        if (a % 10) < (b % 10):
+            return True
+        a //= 10
+        b //= 10
+    return False
+
+
+def _has_int_carrying(a: int, b: int) -> bool:
+    carry = 0
+    while a > 0 or b > 0:
+        col_sum = (a % 10) + (b % 10) + carry
+        if col_sum >= 10:
+            return True
+        carry = col_sum // 10
+        a //= 10
+        b //= 10
+    return False
+
+
+# ── Integer addition ───────────────────────────────────────────────────────────
+
+def integer_addition_easy(rng: random.Random) -> GeneratedQuestion:
+    """No carrying required."""
     digits_a, digits_b = rng.choice(_SHAPES)
-    a = _rand_decimal(rng, digits_a)
-    b = _rand_decimal(rng, digits_b)
-    answer = round(a - b, 2)
-    answer_str = _fmt(answer)
+    a, b = 0, 0
+    for _ in range(50):
+        a = _rand_n_digits(rng, digits_a)
+        b = _rand_n_digits(rng, digits_b)
+        if not _has_int_carrying(a, b):
+            break
+    answer = a + b
     return GeneratedQuestion(
-        question_type="decimal_subtraction",
+        question_type="integer_addition_easy",
+        topic="addition-subtraction",
+        subtopic="addition",
+        effort="low",
+        prompt=f"{a} + {b} =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Add each column right to left.",
+        grading=GradingSpec.numeric(),
+        metadata={"a": a, "b": b},
+    )
+
+
+def integer_addition_carrying(rng: random.Random) -> GeneratedQuestion:
+    """Carrying required in at least one column."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0, 0
+    for _ in range(50):
+        a = _rand_n_digits(rng, digits_a)
+        b = _rand_n_digits(rng, digits_b)
+        if _has_int_carrying(a, b):
+            break
+    answer = a + b
+    return GeneratedQuestion(
+        question_type="integer_addition_carrying",
+        topic="addition-subtraction",
+        subtopic="addition",
+        effort="medium",
+        prompt=f"{a} + {b} =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Add each column right to left, carrying when a column sums to 10 or more.",
+        grading=GradingSpec.numeric(),
+        metadata={"a": a, "b": b},
+    )
+
+
+# ── Integer subtraction ────────────────────────────────────────────────────────
+
+def integer_subtraction_easy(rng: random.Random) -> GeneratedQuestion:
+    """No borrowing required, meaningful gap between operands."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0, 0
+    for _ in range(50):
+        a = _rand_n_digits(rng, digits_a)
+        b = _rand_n_digits(rng, digits_b)
+        if a - b >= 20 and not _has_borrowing(a, b):
+            break
+    if a <= b:
+        a = b + 20
+    answer = a - b
+    return GeneratedQuestion(
+        question_type="integer_subtraction_easy",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="low",
+        prompt=f"{a} - {b} =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Subtract each column right to left.",
+        grading=GradingSpec.numeric(),
+        metadata={"a": a, "b": b},
+    )
+
+
+def integer_subtraction_borrowing(rng: random.Random) -> GeneratedQuestion:
+    """Borrowing required in at least one column, meaningful gap between operands."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0, 0
+    for _ in range(50):
+        a = _rand_n_digits(rng, digits_a)
+        b = _rand_n_digits(rng, digits_b)
+        if a - b >= 20 and _has_borrowing(a, b):
+            break
+    if a <= b:
+        a = b + 20
+    answer = a - b
+    return GeneratedQuestion(
+        question_type="integer_subtraction_borrowing",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="medium",
+        prompt=f"{a} - {b} =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Subtract each column right to left, borrowing from the next column when needed.",
+        grading=GradingSpec.numeric(),
+        metadata={"a": a, "b": b},
+    )
+
+
+# ── Decimal subtraction (positive result) ─────────────────────────────────────
+
+def decimal_subtraction_positive_easy(rng: random.Random) -> GeneratedQuestion:
+    """Both operands have the same decimal places (tenths only), positive result."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(30):
+        a = _rand_decimal(rng, digits_a, 1)
+        b = _rand_decimal(rng, digits_b, 1)
+        if a - b >= 1.0:
+            break
+    if a <= b:
+        a = b + 1.0
+    answer = round(a - b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_subtraction_positive_easy",
         topic="addition-subtraction",
         subtopic="subtraction",
         effort="low",
         prompt=f"{_fmt(a)} - {_fmt(b)} =",
-        answer=answer_str,
-        answer_display=answer_str,
-        hint="Align the decimal points and subtract column by column.",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, then subtract column by column.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
+def decimal_subtraction_positive_medium(rng: random.Random) -> GeneratedQuestion:
+    """Mixed decimal places (tenths and hundredths), positive result."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(30):
+        dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
+        a = _rand_decimal(rng, digits_a, dp_a)
+        b = _rand_decimal(rng, digits_b, dp_b)
+        if a - b >= 1.0:
+            break
+    if a <= b:
+        a = b + 1.0
+    answer = round(a - b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_subtraction_positive_medium",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="medium",
+        prompt=f"{_fmt(a)} - {_fmt(b)} =",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, pad the shorter number with a zero, then subtract column by column.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
+# ── Decimal subtraction (negative result) ─────────────────────────────────────
+
+def decimal_subtraction_negative_easy(rng: random.Random) -> GeneratedQuestion:
+    """Both operands have the same decimal places (tenths only), negative result."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(30):
+        a = _rand_decimal(rng, digits_a, 1)
+        b = _rand_decimal(rng, digits_b, 1)
+        if b - a >= 1.0:
+            break
+    if b <= a:
+        b = a + 1.0
+    answer = round(a - b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_subtraction_negative_easy",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="low",
+        prompt=f"{_fmt(a)} - {_fmt(b)} =",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, compute b - a, then negate the result.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
+def decimal_subtraction_negative_medium(rng: random.Random) -> GeneratedQuestion:
+    """Mixed decimal places (tenths and hundredths), negative result."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(30):
+        dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
+        a = _rand_decimal(rng, digits_a, dp_a)
+        b = _rand_decimal(rng, digits_b, dp_b)
+        if b - a >= 1.0:
+            break
+    if b <= a:
+        b = a + 1.0
+    answer = round(a - b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_subtraction_negative_medium",
+        topic="addition-subtraction",
+        subtopic="subtraction",
+        effort="medium",
+        prompt=f"{_fmt(a)} - {_fmt(b)} =",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, pad the shorter number with a zero, compute b - a, then negate.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
+# ── Decimal addition with carrying ────────────────────────────────────────────
+
+def decimal_addition_carrying_easy(rng: random.Random) -> GeneratedQuestion:
+    """Both operands have tenths only, at least one carry required."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(50):
+        a = _rand_decimal(rng, digits_a, 1)
+        b = _rand_decimal(rng, digits_b, 1)
+        if _has_carrying(a, b):
+            break
+    answer = round(a + b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_addition_carrying_easy",
+        topic="addition-subtraction",
+        subtopic="addition",
+        effort="low",
+        prompt=f"{_fmt(a)} + {_fmt(b)} =",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, then add column by column carrying when a column sums to 10 or more.",
+        grading=GradingSpec.numeric(tolerance=0.001),
+        metadata={"a": a, "b": b},
+    )
+
+
+def decimal_addition_carrying_medium(rng: random.Random) -> GeneratedQuestion:
+    """Mixed decimal places (tenths and hundredths), at least one carry required."""
+    digits_a, digits_b = rng.choice(_SHAPES)
+    a, b = 0.0, 0.0
+    for _ in range(50):
+        dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
+        a = _rand_decimal(rng, digits_a, dp_a)
+        b = _rand_decimal(rng, digits_b, dp_b)
+        if _has_carrying(a, b):
+            break
+    answer = round(a + b, 2)
+    return GeneratedQuestion(
+        question_type="decimal_addition_carrying_medium",
+        topic="addition-subtraction",
+        subtopic="addition",
+        effort="medium",
+        prompt=f"{_fmt(a)} + {_fmt(b)} =",
+        answer=_fmt(answer),
+        answer_display=_fmt(answer),
+        hint="Align the decimal points, pad with a zero where needed, then add column by column carrying when a column sums to 10 or more.",
         grading=GradingSpec.numeric(tolerance=0.001),
         metadata={"a": a, "b": b},
     )
 
 
 GENERATORS = [
-    addition_rounding,
-    addition_digit_matching,
-    subtraction_rounding,
-    subtraction_digit_matching,
-    decimal_subtraction,
+    integer_addition_easy,
+    integer_addition_carrying,
+    integer_subtraction_easy,
+    integer_subtraction_borrowing,
+    decimal_subtraction_positive_easy,
+    decimal_subtraction_positive_medium,
+    decimal_subtraction_negative_easy,
+    decimal_subtraction_negative_medium,
+    decimal_addition_carrying_easy,
+    decimal_addition_carrying_medium,
 ]

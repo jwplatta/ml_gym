@@ -643,7 +643,6 @@ def sample_variance_from_dataset(rng: random.Random) -> GeneratedQuestion:
         answer=answer,
         answer_display=answer_display,
         hint=(
-            "Use s^2 = (1/(n-1)) * sum((x_i - x_bar)^2). "
             "First compute the sample mean. Then find each squared deviation from the mean, "
             "add them up, and divide by n - 1."
         ),
@@ -1218,7 +1217,7 @@ def at_most_k_heads(rng: random.Random) -> GeneratedQuestion:
         prompt=f"What is the probability of getting at most {k} heads in {n} fair coin flips? Give a simplified fraction.",
         answer=f"{result.numerator}/{result.denominator}",
         answer_display=f"{result.numerator}/{result.denominator}",
-        hint=f"Sum the binomial probabilities for 0, 1, ..., {k} heads. P(X=i) = C({n},i) / 2^{n}.",
+        hint=f"Sum the binomial probabilities for 0, 1, ..., {k} heads.",
         grading=GradingSpec.fraction(),
         metadata={"n": n, "k": k, "favorable": favorable, "total": total},
     )

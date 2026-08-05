@@ -18,8 +18,8 @@ _POWERS_OF_10 = {10, 100, 1000, 10000}
 
 
 def _is_trivial_quotient(quotient: int) -> bool:
-    """Quotients that are powers of 10 (e.g. 8900/89=100) are too easy — the digit-count step gives it away immediately."""
-    return quotient in _POWERS_OF_10
+    """Quotients that are 1 (dividend == divisor) or powers of 10 are too obvious."""
+    return quotient == 1 or quotient in _POWERS_OF_10
 
 
 def _random_exact_dividend(rng: random.Random, divisor: int, min_digits: int, max_digits: int) -> int:
