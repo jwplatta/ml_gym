@@ -85,7 +85,7 @@ def integer_addition_easy(rng: random.Random) -> GeneratedQuestion:
 
 def integer_addition_carrying(rng: random.Random) -> GeneratedQuestion:
     """Carrying required in at least one column."""
-    digits_a, digits_b = rng.choice(_SHAPES)
+    digits_a, digits_b = rng.choice([(3, 2), (3, 3)])
     a, b = 0, 0
     for _ in range(50):
         a = _rand_n_digits(rng, digits_a)
@@ -97,7 +97,7 @@ def integer_addition_carrying(rng: random.Random) -> GeneratedQuestion:
         question_type="integer_addition_carrying",
         topic="addition-subtraction",
         subtopic="addition",
-        effort="medium",
+        effort="low",
         prompt=f"{a} + {b} =",
         answer=str(answer),
         answer_display=str(answer),
@@ -110,16 +110,14 @@ def integer_addition_carrying(rng: random.Random) -> GeneratedQuestion:
 # ── Integer subtraction ────────────────────────────────────────────────────────
 
 def integer_subtraction_easy(rng: random.Random) -> GeneratedQuestion:
-    """No borrowing required, meaningful gap between operands."""
+    """No borrowing required, a > b."""
     digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0, 0
-    for _ in range(50):
+    a, b = _rand_n_digits(rng, digits_a), _rand_n_digits(rng, digits_b)
+    for _ in range(100):
         a = _rand_n_digits(rng, digits_a)
         b = _rand_n_digits(rng, digits_b)
-        if a - b >= 20 and not _has_borrowing(a, b):
+        if a > b and not _has_borrowing(a, b):
             break
-    if a <= b:
-        a = b + 20
     answer = a - b
     return GeneratedQuestion(
         question_type="integer_subtraction_easy",
@@ -136,22 +134,20 @@ def integer_subtraction_easy(rng: random.Random) -> GeneratedQuestion:
 
 
 def integer_subtraction_borrowing(rng: random.Random) -> GeneratedQuestion:
-    """Borrowing required in at least one column, meaningful gap between operands."""
+    """Borrowing required in at least one column, a > b."""
     digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0, 0
-    for _ in range(50):
+    a, b = _rand_n_digits(rng, digits_a), _rand_n_digits(rng, digits_b)
+    for _ in range(100):
         a = _rand_n_digits(rng, digits_a)
         b = _rand_n_digits(rng, digits_b)
-        if a - b >= 20 and _has_borrowing(a, b):
+        if a > b and _has_borrowing(a, b):
             break
-    if a <= b:
-        a = b + 20
     answer = a - b
     return GeneratedQuestion(
         question_type="integer_subtraction_borrowing",
         topic="addition-subtraction",
         subtopic="subtraction",
-        effort="medium",
+        effort="low",
         prompt=f"{a} - {b} =",
         answer=str(answer),
         answer_display=str(answer),
@@ -164,16 +160,14 @@ def integer_subtraction_borrowing(rng: random.Random) -> GeneratedQuestion:
 # ── Decimal subtraction (positive result) ─────────────────────────────────────
 
 def decimal_subtraction_positive_easy(rng: random.Random) -> GeneratedQuestion:
-    """Both operands have the same decimal places (tenths only), positive result."""
+    """Both operands have tenths only, positive result."""
     digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0.0, 0.0
-    for _ in range(30):
+    a, b = _rand_decimal(rng, digits_a, 1), _rand_decimal(rng, digits_b, 1)
+    for _ in range(100):
         a = _rand_decimal(rng, digits_a, 1)
         b = _rand_decimal(rng, digits_b, 1)
-        if a - b >= 1.0:
+        if a > b:
             break
-    if a <= b:
-        a = b + 1.0
     answer = round(a - b, 2)
     return GeneratedQuestion(
         question_type="decimal_subtraction_positive_easy",
@@ -192,15 +186,14 @@ def decimal_subtraction_positive_easy(rng: random.Random) -> GeneratedQuestion:
 def decimal_subtraction_positive_medium(rng: random.Random) -> GeneratedQuestion:
     """Mixed decimal places (tenths and hundredths), positive result."""
     digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0.0, 0.0
-    for _ in range(30):
+    dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
+    a, b = _rand_decimal(rng, digits_a, dp_a), _rand_decimal(rng, digits_b, dp_b)
+    for _ in range(100):
         dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
         a = _rand_decimal(rng, digits_a, dp_a)
         b = _rand_decimal(rng, digits_b, dp_b)
-        if a - b >= 1.0:
+        if a > b:
             break
-    if a <= b:
-        a = b + 1.0
     answer = round(a - b, 2)
     return GeneratedQuestion(
         question_type="decimal_subtraction_positive_medium",
@@ -219,22 +212,20 @@ def decimal_subtraction_positive_medium(rng: random.Random) -> GeneratedQuestion
 # ── Decimal subtraction (negative result) ─────────────────────────────────────
 
 def decimal_subtraction_negative_easy(rng: random.Random) -> GeneratedQuestion:
-    """Both operands have the same decimal places (tenths only), negative result."""
-    digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0.0, 0.0
-    for _ in range(30):
+    """Both operands have tenths only, negative result (b > a)."""
+    digits_b, digits_a = rng.choice(_SHAPES)  # swap so b gets the larger digit count
+    a, b = _rand_decimal(rng, digits_a, 1), _rand_decimal(rng, digits_b, 1)
+    for _ in range(100):
         a = _rand_decimal(rng, digits_a, 1)
         b = _rand_decimal(rng, digits_b, 1)
-        if b - a >= 1.0:
+        if b > a:
             break
-    if b <= a:
-        b = a + 1.0
     answer = round(a - b, 2)
     return GeneratedQuestion(
         question_type="decimal_subtraction_negative_easy",
         topic="addition-subtraction",
         subtopic="subtraction",
-        effort="low",
+        effort="medium",
         prompt=f"{_fmt(a)} - {_fmt(b)} =",
         answer=_fmt(answer),
         answer_display=_fmt(answer),
@@ -245,17 +236,16 @@ def decimal_subtraction_negative_easy(rng: random.Random) -> GeneratedQuestion:
 
 
 def decimal_subtraction_negative_medium(rng: random.Random) -> GeneratedQuestion:
-    """Mixed decimal places (tenths and hundredths), negative result."""
-    digits_a, digits_b = rng.choice(_SHAPES)
-    a, b = 0.0, 0.0
-    for _ in range(30):
+    """Mixed decimal places (tenths and hundredths), negative result (b > a)."""
+    digits_b, digits_a = rng.choice(_SHAPES)  # swap so b gets the larger digit count
+    dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
+    a, b = _rand_decimal(rng, digits_a, dp_a), _rand_decimal(rng, digits_b, dp_b)
+    for _ in range(100):
         dp_a, dp_b = rng.choice([(1, 2), (2, 1)])
         a = _rand_decimal(rng, digits_a, dp_a)
         b = _rand_decimal(rng, digits_b, dp_b)
-        if b - a >= 1.0:
+        if b > a:
             break
-    if b <= a:
-        b = a + 1.0
     answer = round(a - b, 2)
     return GeneratedQuestion(
         question_type="decimal_subtraction_negative_medium",
