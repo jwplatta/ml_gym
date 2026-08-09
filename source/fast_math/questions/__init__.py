@@ -5,6 +5,7 @@ from source.fast_math.questions.division import GENERATORS as DIVISION_GENERATOR
 from source.fast_math.questions.games import GENERATORS as GAMES_GENERATORS
 from source.fast_math.questions.multiplication import GENERATORS as MULTIPLICATION_GENERATORS
 from source.fast_math.questions.probability import GENERATORS as PROBABILITY_GENERATORS
+from source.fast_math.questions.sequences import GENERATORS as SEQUENCES_GENERATORS
 from source.fast_math.questions.squaring import GENERATORS as SQUARING_GENERATORS
 
 ALL_GENERATORS = (
@@ -14,6 +15,7 @@ ALL_GENERATORS = (
     *GAMES_GENERATORS,
     *MULTIPLICATION_GENERATORS,
     *PROBABILITY_GENERATORS,
+    *SEQUENCES_GENERATORS,
     *SQUARING_GENERATORS,
     *CONSECUTIVE_SUMS_GENERATORS
 )
@@ -26,6 +28,7 @@ __all__ = [
     "GAMES_GENERATORS",
     "MULTIPLICATION_GENERATORS",
     "PROBABILITY_GENERATORS",
+    "SEQUENCES_GENERATORS",
     "SQUARING_GENERATORS",
     "CONSECUTIVE_SUMS_GENERATORS"
 ]
