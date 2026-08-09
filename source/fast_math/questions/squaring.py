@@ -22,19 +22,59 @@ def square_n_nearest_tens(rng: random.Random) -> GeneratedQuestion:
 
 
 def two_digit_fives(rng: random.Random) -> GeneratedQuestion:
-    tens = rng.randint(2, 19)
+    # 2-digit numbers ending in 5: 15, 25, ..., 95
+    tens = rng.randint(1, 9)
     value = tens * 10 + 5
     answer = value * value
+    n = tens  # the part before the 5
     return GeneratedQuestion(
         question_type="two_digit_fives",
         topic="squaring",
         effort="low",
-        prompt=f"{value} x {value} =",
+        prompt=f"{value}^2 =",
         answer=str(answer),
         answer_display=str(answer),
-        hint="For numbers ending in 5: n(n+1) followed by 25.",
+        hint="Take the digits before the 5, multiply by the next integer, then append 25.",
         grading=GradingSpec.numeric(),
-        metadata={"value": value, "tens": tens},
+        metadata={"value": value, "n": n},
+    )
+
+
+def three_digit_fives(rng: random.Random) -> GeneratedQuestion:
+    # 3-digit numbers ending in 5: 105, 115, ..., 995
+    prefix = rng.randint(10, 99)
+    value = prefix * 10 + 5
+    answer = value * value
+    n = prefix  # the part before the 5
+    return GeneratedQuestion(
+        question_type="three_digit_fives",
+        topic="squaring",
+        effort="medium",
+        prompt=f"{value}^2 =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Take the digits before the 5, multiply by the next integer, then append 25.",
+        grading=GradingSpec.numeric(),
+        metadata={"value": value, "n": n},
+    )
+
+
+def four_digit_fives(rng: random.Random) -> GeneratedQuestion:
+    # 4-digit numbers ending in 5: 1005, 1015, ..., 9995
+    prefix = rng.randint(100, 999)
+    value = prefix * 10 + 5
+    answer = value * value
+    n = prefix  # the part before the 5
+    return GeneratedQuestion(
+        question_type="four_digit_fives",
+        topic="squaring",
+        effort="high",
+        prompt=f"{value}^2 =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Take the digits before the 5, multiply by the next integer, then append 25.",
+        grading=GradingSpec.numeric(),
+        metadata={"value": value, "n": n},
     )
 
 
@@ -111,10 +151,49 @@ def memorized_squares(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def square_3_digit(rng: random.Random) -> GeneratedQuestion:
+    value = rng.randint(100, 999)
+    answer = value * value
+    nearest_hundred = round(value / 100) * 100
+    offset = value - nearest_hundred
+    return GeneratedQuestion(
+        question_type="square_3_digit",
+        topic="squaring",
+        effort="high",
+        prompt=f"{value}^2 =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint=f"Use (a+b)^2 around the nearest hundred ({nearest_hundred}): a^2 + 2ab + b^2 where b={offset:+d}.",
+        grading=GradingSpec.numeric(),
+        metadata={"value": value, "nearest_hundred": nearest_hundred, "offset": offset},
+    )
+
+
+
+def large_power_of_two(rng: random.Random) -> GeneratedQuestion:
+    exponent = rng.randint(11, 20)
+    answer = 2**exponent
+    return GeneratedQuestion(
+        question_type="large_power_of_two",
+        topic="squaring",
+        effort="high",
+        prompt=f"2^{exponent} =",
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Double from a known power of 2 you've memorized.",
+        grading=GradingSpec.numeric(),
+        metadata={"base": 2, "exponent": exponent},
+    )
+
+
 GENERATORS = [
     square_n_nearest_tens,
     two_digit_fives,
+    three_digit_fives,
+    four_digit_fives,
     power_of_two,
     fast_two_digits,
     memorized_squares,
+    square_3_digit,
+    large_power_of_two,
 ]

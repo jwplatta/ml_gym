@@ -160,9 +160,41 @@ def div_reverse_fast_x11(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+_HARD_SHAPES = [(5, 2), (5, 3), (5, 4), (6, 3), (6, 4)]
+
+
+def div_hard(rng: random.Random) -> GeneratedQuestion:
+    """Hard division: large dividends (5-6 digits) divided by 2-4 digit divisors."""
+    dividend_digits, divisor_digits = rng.choice(_HARD_SHAPES)
+    while True:
+        divisor = _rand_n_digits(rng, divisor_digits)
+        if divisor in _EXCLUDED_DIVISORS or divisor == 11:
+            continue
+        dividend = _random_exact_dividend(rng, divisor, dividend_digits)
+        quotient = dividend // divisor
+        if _is_trivial_quotient(quotient):
+            continue
+        if _simplifiable(dividend, divisor):
+            continue
+        break
+    return GeneratedQuestion(
+        question_type="div_hard",
+        topic="division",
+        effort="high",
+        prompt=f"{dividend} / {divisor} =",
+        answer=str(quotient),
+        answer_display=str(quotient),
+        hint="Use the digit or search method.",
+        grading=GradingSpec.numeric(),
+        metadata={"dividend": dividend, "divisor": divisor, "quotient": quotient,
+                  "dividend_digits": dividend_digits, "divisor_digits": divisor_digits},
+    )
+
+
 GENERATORS = [
     div_easy,
     div_medium,
     div_simpler_method,
     div_reverse_fast_x11,
+    div_hard,
 ]
