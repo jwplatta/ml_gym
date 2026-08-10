@@ -34,7 +34,7 @@ def seq_arithmetic(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the differences between consecutive terms.",
+        hint="Difference sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start": start, "d": d},
     )
@@ -54,7 +54,7 @@ def seq_geometric(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the ratios between consecutive terms.",
+        hint="Ratio sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start": start, "ratio": ratio},
     )
@@ -79,7 +79,7 @@ def seq_diff_second_order(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the differences between terms, then the differences of those.",
+        hint="Difference sequence.",
         grading=GradingSpec.numeric(),
         metadata={"a0": a0, "d0": d0, "d2": d2},
     )
@@ -104,7 +104,7 @@ def seq_diff_geometric(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the differences — do they follow a ratio pattern?",
+        hint="Difference sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start": start, "first_diff": first_diff, "ratio": ratio},
     )
@@ -130,7 +130,7 @@ def seq_ratio_alternating(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the ratios between consecutive terms — do they alternate?",
+        hint="Ratio sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start": start, "r1": r1, "r2": r2},
     )
@@ -164,7 +164,7 @@ def seq_double_even_odd(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Try reading every other term separately.",
+        hint="Double sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start_odd": start_odd, "diff_odd": diff_odd,
                   "start_even": start_even, "diff_even": diff_even},
@@ -196,7 +196,7 @@ def seq_double_fractional(rng: random.Random) -> GeneratedQuestion:
         prompt=", ".join(seq_strs) + ", ___",
         answer=answer,
         answer_display=answer,
-        hint="Track numerators and denominators separately.",
+        hint="Double sequence.",
         grading=GradingSpec.fraction(),
         metadata={"num0": num0, "den0": den0, "diff_num": diff_num, "diff_den": diff_den},
     )
@@ -224,7 +224,7 @@ def seq_triplet(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Try reading every 3rd term: positions 1,4,7,... then 2,5,8,... then 3,6,9,...",
+        hint="Triplet sequence.",
         grading=GradingSpec.numeric(),
         metadata={"starts": starts, "diffs": diffs},
     )
@@ -263,7 +263,7 @@ def seq_grouped(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Find the groups of 3. What's the pattern of differences within and between groups?",
+        hint="Grouped sequence.",
         grading=GradingSpec.numeric(),
         metadata={"first_start": first_start, "group_start_diff": group_start_diff,
                   "first_within_d": first_within_d},
@@ -286,7 +286,7 @@ def seq_linear_diff_prior2(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Each term is the difference of the two before it.",
+        hint="Linear sequence.",
         grading=GradingSpec.numeric(),
         metadata={"a0": a0, "a1": a1},
     )
@@ -309,7 +309,7 @@ def seq_linear_mult_plus_c(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look for a pattern of the form: multiply by a constant, then add a constant.",
+        hint="Linear sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start": start, "r": r, "c": c},
     )
@@ -331,7 +331,7 @@ def seq_cumulative_product(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Each term is the product of the two before it.",
+        hint="Cumulative product sequence.",
         grading=GradingSpec.numeric(),
         metadata={"a0": a0, "a1": a1},
     )
@@ -363,7 +363,7 @@ def seq_latent_fibonacci(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Try reading the odd-position and even-position terms separately.",
+        hint="Latent Fibonacci sequence.",
         grading=GradingSpec.numeric(),
         metadata={"fib_start_idx": k, "even_start": start_e, "even_ratio": r},
     )
@@ -382,7 +382,7 @@ def seq_latent_prime_squared(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="These look like perfect squares — of what numbers?",
+        hint="Latent prime sequence.",
         grading=GradingSpec.numeric(),
         metadata={"start_prime_idx": i},
     )
@@ -407,7 +407,7 @@ def seq_latent_power_in_diffs(rng: random.Random) -> GeneratedQuestion:
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
-        hint="Look at the differences between consecutive terms.",
+        hint="Latent power sequence.",
         grading=GradingSpec.numeric(),
         metadata={"base": base, "start_exp": start_exp, "start_val": start_val},
     )
@@ -420,9 +420,9 @@ def seq_latent_alphabetic(rng: random.Random) -> GeneratedQuestion:
 
     if strategy == "ordered_list":
         source, hint_text = rng.choice([
-            (_PLANETS, "Think about what these letters could stand for."),
-            (_DAYS, "Think about what these letters could stand for."),
-            (_MONTHS, "Think about what these letters could stand for."),
+            (_PLANETS, "Alphabetic sequence."),
+            (_DAYS, "Alphabetic sequence."),
+            (_MONTHS, "Alphabetic sequence."),
         ])
         max_start = len(source) - 6
         start_idx = rng.randint(0, max(0, max_start))
@@ -435,7 +435,7 @@ def seq_latent_alphabetic(rng: random.Random) -> GeneratedQuestion:
         start_idx = rng.randint(0, max_start)
         seq = [_ALPHABET[start_idx + j * step] for j in range(5)]
         answer = _ALPHABET[start_idx + 5 * step]
-        hint_text = "Look for a skip pattern in the alphabet."
+        hint_text = "Alphabetic sequence."
 
     return GeneratedQuestion(
         question_type="seq_latent_alphabetic",
