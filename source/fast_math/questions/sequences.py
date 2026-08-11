@@ -416,35 +416,47 @@ def seq_latent_prime_squared(rng: random.Random) -> GeneratedQuestion:
 
 
 def seq_latent_power_in_diffs(rng: random.Random) -> GeneratedQuestion:
-    """Differences between consecutive terms are powers of one or two bases.
-
-    One base: diffs = b^(start_exp + i)  → medium effort
-    Two bases: diffs = b1^(start_exp + i) + b2^(start_exp + i)  → high effort
-    """
-    b1 = rng.choice([2, 3])
-    b2 = rng.choice([0, 2, 3])
-    while b2 == b1:
-        b2 = rng.choice([0, 2, 3])
+    """Differences between consecutive terms are powers of a single base (2 or 3)."""
+    b = rng.choice([2, 3])
     start_exp = rng.choice([0, 1])
     start_val = rng.randint(1, 20)
     n_diffs = rng.choice([4, 5])
-    effort = "medium" if b2 == 0 else "high"
-
     seq = [start_val]
     for i in range(n_diffs):
-        seq.append(seq[-1] + b1 ** (start_exp + i) + b2 ** (start_exp + i))
-
-    answer = seq[-1] + b1 ** (start_exp + n_diffs) + b2 ** (start_exp + n_diffs)
+        seq.append(seq[-1] + b ** (start_exp + i))
+    answer = seq[-1] + b ** (start_exp + n_diffs)
     return GeneratedQuestion(
         question_type="seq_latent_power_in_diffs",
         topic="sequences",
-        effort=effort,
+        effort="medium",
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
         hint="Latent power sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"b1": b1, "b2": b2, "start_exp": start_exp, "start_val": start_val, "effort": effort},
+        metadata={"b": b, "start_exp": start_exp, "start_val": start_val},
+    )
+
+
+def seq_latent_two_powers_in_diffs(rng: random.Random) -> GeneratedQuestion:
+    """Differences between consecutive terms are sums of powers of two bases (2 and 3)."""
+    start_exp = rng.choice([0, 1])
+    start_val = rng.randint(1, 20)
+    n_diffs = rng.choice([4, 5])
+    seq = [start_val]
+    for i in range(n_diffs):
+        seq.append(seq[-1] + 2 ** (start_exp + i) + 3 ** (start_exp + i))
+    answer = seq[-1] + 2 ** (start_exp + n_diffs) + 3 ** (start_exp + n_diffs)
+    return GeneratedQuestion(
+        question_type="seq_latent_two_powers_in_diffs",
+        topic="sequences",
+        effort="high",
+        prompt=_seq_prompt(seq),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Latent power sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"start_exp": start_exp, "start_val": start_val},
     )
 
 
@@ -706,6 +718,7 @@ GENERATORS = [
     seq_latent_fibonacci,
     seq_latent_prime_squared,
     seq_latent_power_in_diffs,
+    seq_latent_two_powers_in_diffs,
     seq_latent_alphabetic,
     seq_cumulative_product_3,
     seq_diff_prime,
