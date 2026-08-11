@@ -421,20 +421,20 @@ def seq_latent_power_in_diffs(rng: random.Random) -> GeneratedQuestion:
     One base: diffs = b^(start_exp + i)  → medium effort
     Two bases: diffs = b1^(start_exp + i) + b2^(start_exp + i)  → high effort
     """
-    n_bases = rng.choice([1, 2])
     b1 = rng.choice([2, 3])
-    b2 = rng.choice([b for b in [2, 3] if b != b1]) if n_bases == 2 else None
+    b2 = rng.choice([0, 2, 3])
+    while b2 == b1:
+        b2 = rng.choice([0, 2, 3])
     start_exp = rng.choice([0, 1])
     start_val = rng.randint(1, 20)
     n_diffs = rng.choice([4, 5])
-    effort = "medium" if n_bases == 1 else "high"
+    effort = "medium" if b2 == 0 else "high"
 
     seq = [start_val]
     for i in range(n_diffs):
-        diff = b1 ** (start_exp + i) + (b2 ** (start_exp + i) if b2 else 0)
-        seq.append(seq[-1] + diff)
+        seq.append(seq[-1] + b1 ** (start_exp + i) + b2 ** (start_exp + i))
 
-    answer = seq[-1] + b1 ** (start_exp + n_diffs) + (b2 ** (start_exp + n_diffs) if b2 else 0)
+    answer = seq[-1] + b1 ** (start_exp + n_diffs) + b2 ** (start_exp + n_diffs)
     return GeneratedQuestion(
         question_type="seq_latent_power_in_diffs",
         topic="sequences",
@@ -444,7 +444,7 @@ def seq_latent_power_in_diffs(rng: random.Random) -> GeneratedQuestion:
         answer_display=str(answer),
         hint="Latent power sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"b1": b1, "b2": b2, "start_exp": start_exp, "start_val": start_val},
+        metadata={"b1": b1, "b2": b2, "start_exp": start_exp, "start_val": start_val, "effort": effort},
     )
 
 
