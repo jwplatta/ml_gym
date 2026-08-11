@@ -611,26 +611,33 @@ def seq_cumulative_alt_ops(rng: random.Random) -> GeneratedQuestion:
 
 
 def seq_cyclic_ops(rng: random.Random) -> GeneratedQuestion:
-    """Cyclic 3-op pattern: +c, ×r, ÷k repeating.
+    """Cyclic 3-op pattern: +c, ×r, ÷k in a randomized order, repeating.
 
-    r = k*d ensures the ÷k step always divides exactly.
+    start and c are multiples of k, r = k*d — this guarantees ÷k is always
+    exact regardless of op order, since all operations preserve divisibility by k.
     Shows 6 terms (2 full cycles), asks for the 7th.
     """
     k = rng.choice([2, 3, 4])
     d = rng.choice([2, 3, 4])
     r = k * d
-    c = rng.randint(3, 15)
-    start = rng.randint(5, 50)
+    c = k * rng.randint(1, 5)
+    start = k * rng.randint(2, 20)
+
+    ops = [("add", c), ("mul", r), ("div", k)]
+    rng.shuffle(ops)
+
+    def apply(val, op):
+        name, arg = op
+        if name == "add":
+            return val + arg
+        elif name == "mul":
+            return val * arg
+        else:
+            return val // arg
 
     seq = [start]
     for i in range(6):
-        op = i % 3
-        if op == 0:
-            seq.append(seq[-1] + c)
-        elif op == 1:
-            seq.append(seq[-1] * r)
-        else:
-            seq.append(seq[-1] // k)
+        seq.append(apply(seq[-1], ops[i % 3]))
 
     shown = seq[:6]
     answer = seq[6]
@@ -643,7 +650,7 @@ def seq_cyclic_ops(rng: random.Random) -> GeneratedQuestion:
         answer_display=str(answer),
         hint="Cyclic sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"c": c, "r": r, "k": k, "start": start},
+        metadata={"c": c, "r": r, "k": k, "start": start, "op_order": [o[0] for o in ops]},
     )
 
 
