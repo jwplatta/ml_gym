@@ -416,27 +416,35 @@ def seq_latent_prime_squared(rng: random.Random) -> GeneratedQuestion:
 
 
 def seq_latent_power_in_diffs(rng: random.Random) -> GeneratedQuestion:
-    """Sequence where the differences between consecutive terms are powers of a base."""
-    base = rng.choice([2, 3])
+    """Differences between consecutive terms are powers of one or two bases.
+
+    One base: diffs = b^(start_exp + i)  → medium effort
+    Two bases: diffs = b1^(start_exp + i) + b2^(start_exp + i)  → high effort
+    """
+    n_bases = rng.choice([1, 2])
+    b1 = rng.choice([2, 3])
+    b2 = rng.choice([b for b in [2, 3] if b != b1]) if n_bases == 2 else None
     start_exp = rng.choice([0, 1])
     start_val = rng.randint(1, 20)
     n_diffs = rng.choice([4, 5])
+    effort = "medium" if n_bases == 1 else "high"
 
     seq = [start_val]
     for i in range(n_diffs):
-        seq.append(seq[-1] + base ** (start_exp + i))
+        diff = b1 ** (start_exp + i) + (b2 ** (start_exp + i) if b2 else 0)
+        seq.append(seq[-1] + diff)
 
-    answer = seq[-1] + base ** (start_exp + n_diffs)
+    answer = seq[-1] + b1 ** (start_exp + n_diffs) + (b2 ** (start_exp + n_diffs) if b2 else 0)
     return GeneratedQuestion(
         question_type="seq_latent_power_in_diffs",
         topic="sequences",
-        effort="medium",
+        effort=effort,
         prompt=_seq_prompt(seq),
         answer=str(answer),
         answer_display=str(answer),
         hint="Latent power sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"base": base, "start_exp": start_exp, "start_val": start_val},
+        metadata={"b1": b1, "b2": b2, "start_exp": start_exp, "start_val": start_val},
     )
 
 
@@ -680,30 +688,6 @@ def seq_diff_fibonacci(rng: random.Random) -> GeneratedQuestion:
     )
 
 
-def seq_diff_two_powers(rng: random.Random) -> GeneratedQuestion:
-    """Differences are sums of two independent power sequences: b1^i + b2^i."""
-    bases_pool = [2, 3, 4]
-    b1 = rng.choice(bases_pool)
-    b2 = rng.choice([b for b in bases_pool if b != b1])
-    start_exp = rng.choice([0, 1])
-    start_val = rng.randint(1, 20)
-    n_diffs = rng.choice([4, 5])
-    seq = [start_val]
-    for i in range(n_diffs):
-        seq.append(seq[-1] + b1 ** (start_exp + i) + b2 ** (start_exp + i))
-    answer = seq[-1] + b1 ** (start_exp + n_diffs) + b2 ** (start_exp + n_diffs)
-    return GeneratedQuestion(
-        question_type="seq_diff_two_powers",
-        topic="sequences",
-        effort="high",
-        prompt=_seq_prompt(seq),
-        answer=str(answer),
-        answer_display=str(answer),
-        hint="Latent power sequence.",
-        grading=GradingSpec.numeric(),
-        metadata={"b1": b1, "b2": b2, "start_exp": start_exp, "start_val": start_val},
-    )
-
 
 GENERATORS = [
     seq_arithmetic,
@@ -730,5 +714,4 @@ GENERATORS = [
     seq_cumulative_alt_ops,
     seq_cyclic_ops,
     seq_diff_fibonacci,
-    seq_diff_two_powers,
 ]
