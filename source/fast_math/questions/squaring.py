@@ -123,7 +123,7 @@ def fast_two_digits(rng: random.Random) -> GeneratedQuestion:
     return GeneratedQuestion(
         question_type="fast_two_digits",
         topic="squaring",
-        effort="high",
+        effort="medium",
         prompt=f"{num}^2 =",
         answer=str(ans),
         answer_display=str(ans),
