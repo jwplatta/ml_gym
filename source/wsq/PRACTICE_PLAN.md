@@ -152,7 +152,16 @@ N = number of independent bets. Extending a strategy to more uncorrelated assets
 
 **Practice** (80 min):
 
-- **Exercise 1 — Look-ahead bias demonstration**: Replace the random `signal` with `rets` itself — use the same period's return as the signal. Run `analyze_signal(rets, rets)`. The spread will be very large and positive. This simulates the most common form of look-ahead bias: your signal accidentally incorporates the return you're trying to predict (e.g., computing a signal from end-of-day prices and using it to trade at that same end-of-day price). Now restore the independent random signal — spread collapses back to near zero. The gap between the two spreads is how much a biased backtest inflates results. In the DataFrame-based exercises that follow, `.shift()` on portfolio weights is what enforces this boundary — signals formed at time *t* can only be applied to returns at time *t+1*.
+- **Exercise 1 — Signal quality and noise**: A random signal has no predictive value — spread is near zero. Build a signal with real edge and then systematically degrade it with noise:
+  ```python
+  rets_arr = np.array(rets)
+  rets_std = rets_arr.std()
+  # Start with perfect signal (standardized rets), then add increasing noise
+  for noise_level in [0.0, 0.5, 1.0, 2.0, 5.0, 10.0]:
+      signal = list(rets_arr / rets_std + np.random.normal(0, noise_level, 252))
+      print(noise_level, analyze_signal(rets, signal)['spread'])
+  ```
+  At `noise=0` the signal perfectly ranks returns — spread is large (~0.02). At `noise=10` the signal is pure noise — spread collapses to near zero. Plot spread vs. noise level. This is signal-to-noise ratio made concrete: every real trading signal is somewhere on this curve, and your job is to figure out where.
 
 - **Exercise 2 — Real signal**: Replace the random signal with `ret[idx-1]` (yesterday's return as the signal). State your hypothesis first: *"I believe yesterday's return predicts today's return because..."*. Is this a momentum or reversal hypothesis? Compute the spread. Does the signal have value?
 
@@ -402,31 +411,46 @@ The constrained problem (what you actually solve in production):
 import cvxpy as cp
 
 w = cp.Variable(n)
-objective = cp.Minimize(cp.quad_form(w, sigma))   # minimize portfolio variance
-constraints = [
-    cp.sum(w) == 1,       # fully invested
-    w >= 0,               # long-only
-    w <= 0.30,            # no more than 30% in any asset
-]
-prob = cp.Problem(objective, constraints)
+prob = cp.Problem(
+    cp.Minimize(cp.quad_form(w, sigma)),
+    [cp.sum(w) == 1, w >= 0, w <= 0.40]   # fully invested, long-only, max 40% per asset
+)
 prob.solve()
 ```
 
 **Practice** (70 min):
 
-- **Exercise 1 — Verify cvxpy matches Σ⁻¹μ (unconstrained)**: Use your Day 6 strategy returns. Solve the unconstrained minimum-variance problem with cvxpy (no constraints except `sum(w) = 1`, allow negatives). Confirm the weights match `np.linalg.inv(sigma) @ mu` (normalized). This is the sanity check that the optimizer is working correctly before you add constraints.
+Use the `portfolio_weighting.py` synthetic data (strategies A, B, C). For Exercises 1 & 2, modify strategy C to have a *negative* expected return so the unconstrained optimizer shorts it — this makes the long-only constraint visibly meaningful:
+```python
+mu_modified = rets.mean().copy()
+mu_modified['C'] = -0.02 / 252   # C now has negative expected return
+```
 
-- **Exercise 2 — Add long-only constraint**: Add `w >= 0` to the problem. How do the weights change? Which strategies get zeroed out? Does SR drop? The gap between constrained SR and unconstrained SR is the cost of the long-only constraint — what you pay for not being allowed to short.
-
-- **Exercise 3 — Add position limits**: Add `w <= 0.30` (max 30% per asset). How does this affect the most concentrated positions from Exercise 2? Report SR and max drawdown with and without the constraint. Position limits typically cost less than the long-only constraint but improve drawdown behavior.
-
-- **Exercise 4 — Tracking error formulation**: This is the Stage 7 framing. Given your ideal signal weights `w_ideal` (from the unconstrained backtest), find the closest feasible portfolio subject to constraints:
+- **Exercise 1 — Verify cvxpy matches Σ⁻¹μ (unconstrained)**: With the modified mu, solve the tangency portfolio using cvxpy (`w @ mu == 1` constraint, no bounds). Confirm weights match `np.linalg.inv(sigma) @ mu` normalized. Strategy C should have a negative (short) weight in both.
   ```python
   w = cp.Variable(n)
-  objective = cp.Minimize(cp.sum_squares(w - w_ideal))  # minimize distance to ideal
-  constraints = [cp.sum(w) == 1, w >= 0, w <= 0.30]
+  prob = cp.Problem(cp.Minimize(cp.quad_form(w, sigma)), [w @ mu == 1])
+  prob.solve()
   ```
-  Compare this portfolio to the raw signal weights. How much does enforcing constraints force you to deviate from your ideal? Report the net SR — this is closer to what you'd actually achieve in live trading.
+
+- **Exercise 2 — Add long-only constraint**: Add `w >= 0`. Strategy C gets zeroed out and capital shifts to A and B. Report the SR of the long-only portfolio vs. unconstrained. The SR drop is the cost of not being allowed to short a negative-return asset.
+
+- **Exercise 3 — Add position limits**: Switch back to the original positive mu (all three strategies profitable). The unconstrained solution concentrates heavily in C (low vol, positive return — gets ~74% weight). Add `w <= 0.40` cap. Observe how capital redistributes to A and B. Report SR and max drawdown with and without the cap.
+  ```python
+  w = cp.Variable(n)
+  prob = cp.Problem(cp.Minimize(cp.quad_form(w, sigma)),
+                    [cp.sum(w) == 1, w >= 0, w <= 0.40])
+  prob.solve()
+  ```
+
+- **Exercise 4 — Tracking error formulation**: This is the Stage 7 framing. Your ideal weights are the unconstrained optimum. Find the closest feasible portfolio:
+  ```python
+  w = cp.Variable(n)
+  prob = cp.Problem(cp.Minimize(cp.sum_squares(w - w_ideal)),
+                    [cp.sum(w) == 1, w >= 0, w <= 0.40])
+  prob.solve()
+  ```
+  Print the tracking error (`cp.sum_squares(w - w_ideal).value`). This number is what you pay in weight-distance terms to satisfy real-world constraints. Compare the SR of the ideal vs. constrained portfolio — this gap is what you'd lose going from backtest to live.
 
 **Deliverable**: Table comparing unconstrained vs. long-only vs. position-limited portfolios on SR, max drawdown, and Calmar ratio. Written answer: what is the cost (in SR terms) of each constraint you added, and is it worth paying?
 
@@ -695,10 +719,9 @@ max_drawdown = drawdown.min()
 
 **Drawdown Duration** (longest consecutive days below prior peak):
 ```python
-in_drawdown = (drawdown < 0).astype(int)
-# count consecutive 1s — longest run is the max drawdown duration
-duration = in_drawdown.groupby((in_drawdown != in_drawdown.shift()).cumsum()).cumsum()
-max_duration = duration.max()
+in_dd = drawdown < 0
+groups = (~in_dd).cumsum()          # group ID increments each time we exit a drawdown
+max_duration = in_dd.groupby(groups).sum().max()
 ```
 
 **Calmar Ratio**:

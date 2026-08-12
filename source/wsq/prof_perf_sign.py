@@ -61,7 +61,6 @@ print(profit)
 # PART 2: Performance Statistics
 # ==============================================================================
 
-
 def compute_stats(rets):
     """
     Calculate key performance metrics for a return series.
@@ -191,9 +190,15 @@ def analyze_signal(rets, signal):
 
     return analysis
 
-
 # Test the signal analysis
 # Since both rets and signal are random, we expect spread ≈ 0 (no predictive power)
-results = analyze_signal(rets, rets)
+# rets_arr = np.array(rets)
+# signal_from_rets = list((rets_arr - rets_arr.mean()) / rets_arr.std())
+# results = analyze_signal(rets, signal_from_rets)
 
-print(results)
+rets_arr = np.array(rets)
+rets_std = rets_arr.std()
+
+for noise_level in [0.0, 0.5, 1.0, 2.0, 5.0, 10.0]:
+    signal = list(rets_arr / rets_std + np.random.normal(0, noise_level, 252))
+    print(noise_level, analyze_signal(rets, signal)['spread'])
