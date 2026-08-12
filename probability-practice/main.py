@@ -16,6 +16,12 @@ from src.generate_notebook import create_notebook
 from src.question_randomizer import select_questions
 from src.write_solutions import add_solutions
 
+VALID_TOPICS = {
+    "axioms",
+    "combinations",
+    "permutations"
+}
+
 
 def build_quiz_filename(topics: list[str], timestamp: str) -> str:
     topics_slug = "_".join(topics)
@@ -30,7 +36,8 @@ def main() -> None:
         "--topics",
         nargs="+",
         required=True,
-        help="Topic names (e.g., combinations permutations probability_axioms)",
+        choices=list(VALID_TOPICS),
+        help="Topic names (e.g., combinations permutations axioms)",
     )
     parser.add_argument(
         "--difficulty",
@@ -61,7 +68,18 @@ def main() -> None:
     parser.add_argument(
         "--model",
         default=None,
-        help="OpenRouter model override (optional)",
+        help="Model name for the selected provider (optional)",
+    )
+    parser.add_argument(
+        "--provider",
+        choices=["openrouter", "ollama"],
+        default="ollama",
+        help="LLM provider to use (default: ollama)",
+    )
+    parser.add_argument(
+        "--ollama-host",
+        default=None,
+        help="Ollama host override (default: http://localhost:11434)",
     )
     parser.add_argument(
         "--timeout",
@@ -97,6 +115,8 @@ def main() -> None:
         model=args.model,
         timeout=args.timeout,
         request_delay=args.request_delay,
+        provider=args.provider,
+        ollama_host=args.ollama_host,
     )
 
     timestamp = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")

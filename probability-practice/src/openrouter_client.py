@@ -22,12 +22,11 @@ DEBUG_ENV_VAR = "OPENROUTER_DEBUG"
 
 Endpoint = Literal["responses", "chat"]
 
-
 def resolve_endpoint(model: str, endpoint: Endpoint | None) -> Endpoint:
     if endpoint:
         return endpoint
 
-    if model.startswith("qwen/"):
+    if model.startswith("qwen/") or model.startswith("meta-llama/"):
         return "chat"
 
     return "responses"
@@ -104,6 +103,11 @@ def request_openrouter(
     response = None
     for attempt in range(1, max_retries + 1):
         response = requests.post(url, headers=headers, json=payload, timeout=timeout)
+
+        print(f"Status Code: {response.status_code}")
+        print(f"Headers: {response.headers}")
+        print(f"Body: {response.text}")
+
         if response.status_code not in {429, 500, 502, 503, 504}:
             break
 

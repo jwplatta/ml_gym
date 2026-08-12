@@ -10,6 +10,7 @@ from collections.abc import Iterable
 
 from tqdm import tqdm
 
+from .ollama_client import request_ollama
 from .openrouter_client import request_openrouter
 
 # DEFAULT_MODEL = "openai/gpt-oss-120b:free"
@@ -21,8 +22,8 @@ def build_prompt(question_text: str, solution_template: str | None = None) -> st
     prompt = (
         "Write a solution in Markdown. Use LaTeX for all formulas "
         "and wrap every formula with dollar signs only: inline `$...$` "
-        "and display `$$...$$` (do NOT use `\\[` `\\]`). "
-        "Do not use Unicode math symbols or smart quotes.\n\n"
+        "and display `$$...$$` (do NOT use `\\[` `\\]`). Do not escape characters!"
+        "Do not use Unicode math symbols or smart quotes. Do NOT put brackets around formulas.\n\n"
         "Examples (use this exact style):\n"
         "- Inline: $\\binom{n}{k} = \\frac{n!}{k!(n-k)!}$\n"
         "- Display:\n"
@@ -41,13 +42,24 @@ def request_solution(
     *,
     model: str | None = DEFAULT_MODEL,
     timeout: int = 60,
+    provider: str = "ollama",
+    ollama_host: str | None = None,
 ) -> str:
     model_name = model or DEFAULT_MODEL
-    output_text = request_openrouter(
-        build_prompt(question_text, solution_template),
-        model=model_name,
-        timeout=timeout,
-    )
+    prompt = build_prompt(question_text, solution_template)
+    if provider == "ollama":
+        output_text = request_ollama(
+            prompt,
+            model=model_name,
+            host=ollama_host,
+            timeout=timeout,
+        )
+    else:
+        output_text = request_openrouter(
+            prompt,
+            model=model_name,
+            timeout=timeout,
+        )
     return sanitize_solution(output_text)
 
 
@@ -85,6 +97,8 @@ def add_solutions(
     model: str | None = DEFAULT_MODEL,
     timeout: int = 60,
     request_delay: float = 0.0,
+    provider: str = "ollama",
+    ollama_host: str | None = None,
 ) -> list[dict]:
     question_list = list(questions)
     enriched = []
@@ -94,6 +108,8 @@ def add_solutions(
             solution_template=question.get("solution-template") or None,
             model=model,
             timeout=timeout,
+            provider=provider,
+            ollama_host=ollama_host,
         )
         updated = dict(question)
         updated["solution"] = solution

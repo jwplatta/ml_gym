@@ -82,7 +82,6 @@ def create_notebook(quiz: dict, title: str | None = None):
     )
     nb.cells.append(new_markdown_cell(header_md))
 
-    # Add each question
     for i, q in enumerate(questions, 1):
         question_md = f"## Question {i}\n\n{format_question_body(q)}"
         nb.cells.append(new_markdown_cell(question_md))

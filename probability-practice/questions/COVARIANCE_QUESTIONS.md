@@ -1,53 +1,97 @@
 # Covariance
 
-## Question 1
+## Basic Covariance from Contingency Table
 
-**Prompt:**
-Given the contingency table:
+Given the following contingency table for customer behavior:
 
-{{table}}
+|              | Purchased (B) | No Purchase (¬B) | Total |
+|--------------|---------------|------------------|-------|
+| Email Sent (A) | 40          | 10               | 50    |
+| No Email (¬A) | 20           | 30               | 50    |
+| **Total**    | **60**        | **40**           | **100** |
 
-Let X and Y be indicator variables for events A and B respectively. Compute Cov(X, Y) = E[XY] - E[X]E[Y].
+Let X and Y be indicator variables for events A and B respectively (X=1 if email sent, Y=1 if purchased). Compute Cov(X, Y) = E[XY] - E[X]E[Y].
 
-**Solution:**
-E[X] = P(A) = {{marginal_A}}/{{total}}
-E[Y] = P(B) = {{marginal_B}}/{{total}}
-E[XY] = P(X=1 and Y=1) = P(A ∩ B) = {{joint_AB}}/{{total}}
+### Solution
+
+**Step 1: Calculate E[X]**
+
+E[X] = P(A) = 50/100 = 0.50
+
+**Step 2: Calculate E[Y]**
+
+E[Y] = P(B) = 60/100 = 0.60
+
+**Step 3: Calculate E[XY]**
+
+E[XY] = P(X=1 and Y=1) = P(A ∩ B) = 40/100 = 0.40
+
+**Step 4: Calculate Cov(X, Y)**
 
 Cov(X, Y) = E[XY] - E[X]E[Y]
-          = {{joint_AB}}/{{total}} - ({{marginal_A}}/{{total}}) × ({{marginal_B}}/{{total}})
-          = {{joint_AB}}/{{total}} - {{product_num}}/{{total_squared}}
-          = {{covariance_result}}
+          = 0.40 - (0.50)(0.60)
+          = 0.40 - 0.30
+          = 0.10
 
-Note: If A and B were independent, Cov(X,Y) = 0.
+**Answer: Cov(X, Y) = 0.10**
 
-## Question 2
+**Interpretation:** The positive covariance (0.10) indicates that sending an email and making a purchase are positively associated. If A and B were independent, Cov(X,Y) would equal 0.
 
-**Prompt:**
-Given the contingency table:
+### Notes
 
-{{table}}
+- Quality: GOOD
+- Difficulty: VERY EASY
+- Notes: Clear introduction to covariance calculation using indicator variables from a contingency table
 
-Let X and Y be indicators for A and B. Show that if A and B are independent, then Cov(X, Y) = 0. Verify using the table data.
+## Independence Implies Zero Covariance
 
-**Solution:**
-First, test if A and B are independent:
-P(A ∩ B) = {{joint_AB}}/{{total}}
-P(A) × P(B) = ({{marginal_A}}/{{total}}) × ({{marginal_B}}/{{total}}) = {{product_num}}/{{total_squared}}
+Given the following contingency table for smartphone ownership and tablet ownership:
 
-{{independence_test}}
+|              | Tablet (B) | No Tablet (¬B) | Total |
+|--------------|------------|----------------|-------|
+| Smartphone (A) | 36       | 24             | 60    |
+| No Phone (¬A) | 24        | 16             | 40    |
+| **Total**    | **60**     | **40**         | **100** |
 
-Now compute Cov(X, Y):
-E[XY] = {{joint_AB}}/{{total}}
-E[X]E[Y] = {{product_num}}/{{total_squared}}
+Let X and Y be indicators for A and B (X=1 if smartphone, Y=1 if tablet). Show that if A and B are independent, then Cov(X, Y) = 0. Verify using the table data.
 
-Cov(X, Y) = {{joint_AB}}/{{total}} - {{product_num}}/{{total_squared}} = {{covariance_result}}
+### Solution
 
-{{covariance_conclusion}}
+**Step 1: Test if A and B are independent**
 
-## Simple Covariance Calculation - Easy - SOLID QUESTION
+Calculate joint and product of marginals:
 
-**Prompt:**
+P(A ∩ B) = 36/100 = 0.36
+
+P(A) × P(B) = (60/100) × (60/100) = 0.60 × 0.60 = 0.36
+
+Since P(A ∩ B) = P(A) × P(B), events A and B are **independent**.
+
+**Step 2: Compute Cov(X, Y)**
+
+E[X] = P(A) = 60/100 = 0.60
+
+E[Y] = P(B) = 60/100 = 0.60
+
+E[XY] = P(A ∩ B) = 36/100 = 0.36
+
+Cov(X, Y) = E[XY] - E[X]E[Y]
+          = 0.36 - (0.60)(0.60)
+          = 0.36 - 0.36
+          = 0
+
+**Answer: Cov(X, Y) = 0**
+
+**Conclusion:** As expected, when A and B are independent, the covariance between their indicator variables is zero. This demonstrates the fundamental property that independence implies zero covariance.
+
+### Notes
+
+- Quality: EXCELLENT
+- Difficulty: EASY
+- Notes: Important theoretical result connecting independence and covariance; demonstrates that independent events have zero covariance
+
+## Simple Covariance Calculation
+
 Consider two random variables X and Y with the following joint distribution:
 
 | X \ Y | Y=0 | Y=1 |
@@ -57,7 +101,7 @@ Consider two random variables X and Y with the following joint distribution:
 
 Calculate Cov(X, Y) using the formula: Cov(X, Y) = E[XY] - E[X]E[Y]
 
-**Solution:**
+### Solution
 
 **Step 1: Calculate E[X]**
 
@@ -99,9 +143,14 @@ Cov(X, Y) = 0.1 - 0.2 = -0.1
 
 **Interpretation:** The negative covariance indicates that X and Y are negatively associated. When X is large, Y tends to be small, and vice versa. Looking at the table, we can verify this: P(X=1, Y=1) = 0.1 is less than P(X=1)×P(Y=1) = 0.5×0.4 = 0.2, confirming negative association.
 
-## Independence and Covariance - Easy - SOLID QUESTION
+### Notes
 
-**Prompt:**
+- Quality: EXCELLENT
+- Difficulty: EASY
+- Notes: Clear step-by-step calculation of covariance; demonstrates negative association; includes interpretation
+
+## Independence and Covariance
+
 Consider two random variables X and Y with the following joint distribution:
 
 | X \ Y | Y=0 | Y=1 |
@@ -114,7 +163,7 @@ Consider two random variables X and Y with the following joint distribution:
 2. Calculate Cov(X, Y).
 3. What relationship do you observe between independence and covariance?
 
-**Solution:**
+### Solution
 
 **Part 1: Test for independence**
 
@@ -173,3 +222,9 @@ In this problem, X and Y are independent, and as expected, Cov(X, Y) = 0.
 If X and Y are independent, then E[XY] = E[X]E[Y], which means:
 
 Cov(X, Y) = E[XY] - E[X]E[Y] = E[X]E[Y] - E[X]E[Y] = 0
+
+### Notes
+
+- Quality: EXCELLENT
+- Difficulty: EASY
+- Notes: Multi-part question combining independence testing and covariance calculation; demonstrates the theorem that independence implies zero covariance
