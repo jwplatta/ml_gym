@@ -1,34 +1,36 @@
-## Challenge: Adding Sector Information
+# Medium Pandas Questions
 
-Create a new DataFrame called prices_with_sectors that adds a 'Sector' column to each stock's prices. The result should be in long format (also called "tidy" format) with columns: Date, Ticker, Price, Sector.
+## Filtering with Rolling Statistics
 
-```python
-import pandas as pd
-import numpy as np
+Question: Filter `prices` to dates where `MARA` closed below `10` and `VLO` closed above its 20-day rolling mean. Return only `['MARA', 'VLO']`, sorted by `MARA` ascending.
+Difficulty: MEDIUM
+Quality: GOOD
+Answer: `mask = (prices['MARA'] < 10) & (prices['VLO'] > prices['VLO'].rolling(20).mean()); prices.loc[mask, ['MARA', 'VLO']].sort_values('MARA')`
 
-price_data = {
-    'Date': pd.to_datetime(['2025-07-28', '2025-07-29', '2025-07-30', '2025-07-31', '2025-08-01',
-                            '2025-09-02', '2025-09-03', '2025-09-04', '2025-09-05', '2025-09-08']),
-    'BAC': [47.72, 47.44, 47.45, 46.77, 45.17, 45.36, 45.07, 44.94, 44.44, 45.52,
-            48.95, 49.71, 49.84, 49.95, 50.20, 49.88, 49.53, 50.08, 49.51, 49.20],
-    'IWM': [222.74, 221.32, 220.19, 218.04, 213.60, 218.38, 219.49, 219.20, 218.49, 218.96,
-            230.93, 232.84, 234.49, 234.76, 233.72, 232.46, 232.23, 235.13, 236.31, 236.78],
-    'LOW': [227.84, 227.89, 225.31, 221.48, 224.29, 231.63, 235.24, 236.06, 236.33, 238.90,
-            256.45, 255.92, 256.25, 255.13, 255.65, 256.32, 258.24, 262.10, 267.45, 270.47],
-    'MRK': [82.53, 81.13, 80.26, 76.70, 77.85, 78.41, 79.32, 78.00, 78.91, 79.22,
-            83.76, 83.45, 82.54, 81.70, 82.59, 83.93, 82.65, 82.52, 83.17, 82.56],
-    'TSM': [241.34, 239.92, 241.49, 240.21, 233.84, 237.61, 231.12, 230.02, 241.21, 240.42,
-            234.22, 237.33, 237.90, 236.88, 229.52, 227.06, 230.04, 233.84, 241.99, 245.75]
-}
+## Ranking and Sorting Transformations
 
-prices = pd.DataFrame(price_data)
-prices.set_index('Date', inplace=True)
-sectors = pd.Series({
-    'BAC': 'Financials',
-    'IWM': 'ETF',
-    'LOW': 'Consumer',
-    'MRK': 'Healthcare',
-    'TSM': 'Technology'
-})
-```
+Question: Create a DataFrame named `latest_rank` from the latest row of `prices` with columns `ticker`, `last_close`, and `pct_from_median`, where `pct_from_median = last_close / median(last_close) - 1`. Sort descending by `pct_from_median`.
+Difficulty: MEDIUM
+Quality: GOOD
+Answer: `last_row = prices.iloc[-1]; latest_rank = pd.DataFrame({'ticker': last_row.index, 'last_close': last_row.values}); latest_rank['pct_from_median'] = latest_rank['last_close'] / latest_rank['last_close'].median() - 1; latest_rank.sort_values('pct_from_median', ascending=False)`
 
+## Return Filters and Custom Sort Keys
+
+Question: Using `returns`, find dates where absolute `GLD` return is greater than `1.5%` and `BLK` return is negative. Return `['BLK', 'GLD']`, sorted by absolute `GLD` move (largest first).
+Difficulty: MEDIUM
+Quality: GOOD
+Answer: `mask = (returns['GLD'].abs() > 0.015) & (returns['BLK'] < 0); returns.loc[mask, ['BLK', 'GLD']].sort_values('GLD', key=lambda s: s.abs(), ascending=False)`
+
+## Multi-Condition Date and Category Filters
+
+Question: From `price_long`, filter rows where `Ticker` is in `['BLK', 'MCD', 'VLO']`, `Date` is in January 2026, and `close` is between `300` and `1200`. Return `['Date', 'Ticker', 'close']` sorted by `Date` ascending then `close` descending.
+Difficulty: MEDIUM
+Quality: GOOD
+Answer: `mask = price_long['Ticker'].isin(['BLK', 'MCD', 'VLO']) & price_long['Date'].between('2026-01-01', '2026-01-31') & price_long['close'].between(300, 1200); price_long.loc[mask, ['Date', 'Ticker', 'close']].sort_values(['Date', 'close'], ascending=[True, False])`
+
+## MultiIndex Selection and Filtering
+
+Question: Using `panel` (MultiIndex by `Date`, `Ticker`), select rows for tickers `GLD` and `MARA` from `2025-12-01` to `2026-01-15` with columns `['close', 'ret_5d']`. Keep only rows where `ret_5d > 0.05` or `ret_5d < -0.05`, then sort by `ret_5d` descending.
+Difficulty: MEDIUM
+Quality: GOOD
+Answer: `idx = pd.IndexSlice; subset = panel.loc[idx['2025-12-01':'2026-01-15', ['GLD', 'MARA']], ['close', 'ret_5d']]; subset.loc[(subset['ret_5d'] > 0.05) | (subset['ret_5d'] < -0.05)].sort_values('ret_5d', ascending=False)`

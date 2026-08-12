@@ -8,15 +8,15 @@ Usage:
     # Pull random questions from the built-in question bank:
     python generate_notebook.py --bank ../questions/bank.json \
         --category pandas --subcategory series \
-        --difficulty easy --count 5 --output ./notebooks
+        --difficulty easy --count 5 --output notebooks/practice
 
     # From a questions JSON file (Claude-generated):
     python generate_notebook.py --questions questions.json \
-        --category pandas --difficulty medium --output ./notebooks
+        --category pandas --difficulty medium --output notebooks/practice
 
     # From stdin (Claude pipes generated questions):
     cat questions.json | python generate_notebook.py \
-        --category algorithms --difficulty hard --output ./notebooks
+        --category algorithms --difficulty hard --output notebooks/practice
 """
 
 import argparse
@@ -46,6 +46,8 @@ def load_template(category):
 
     with open(template_path) as f:
         nb = nbformat.read(f, as_version=4)
+    # Keep only title + setup cells. Drop template's built-in example challenge.
+    nb.cells = nb.cells[:2]
     return nb
 
 
@@ -174,7 +176,7 @@ def main():
     parser.add_argument("--subcategory", type=str, default="", help="Subcategory filter (e.g. 'series', 'sorting').")
     parser.add_argument("--difficulty", type=str, default="medium", help="Difficulty: easy, medium, hard (default: medium).")
     parser.add_argument("--count", type=int, default=10, help="Number of questions (default: 10).")
-    parser.add_argument("--output", type=str, default=".", help="Output directory for the notebook.")
+    parser.add_argument("--output", type=str, default="notebooks/practice", help="Output directory for the notebook.")
     args = parser.parse_args()
 
     # Load questions

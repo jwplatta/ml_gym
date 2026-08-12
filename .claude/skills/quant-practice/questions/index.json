@@ -8,7 +8,6 @@
   {
     "file": "annualized_sharpe_ratio.md",
     "topics": ["sharpe", "momentum", "signals"],
-    "difficulty": null,
     "active": true
   },
   {
@@ -49,13 +48,13 @@
   },
   {
     "file": "performance_stats.md",
-    "topics": ["performance", "stats", "sharpe"],
+    "topics": ["performance", "sharpe"],
     "difficulty": null,
     "active": true
   },
   {
     "file": "dollar_profits.md",
-    "topics": ["pnl", "returns", "data"],
+    "topics": ["pnl", "returns"],
     "difficulty": null,
     "active": true
   },

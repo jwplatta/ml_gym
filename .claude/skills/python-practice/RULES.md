@@ -1,3 +1,4 @@
 - Do not include summaries at the end of the notebook.
 - Never include the template/example challenge in generated notebooks. Include only the requested practice questions.
 - Create practice notebooks in `notebooks/practice` unless the user explicitly requests a different output directory.
+- If you include hints, make sure they are always hidden be default.
