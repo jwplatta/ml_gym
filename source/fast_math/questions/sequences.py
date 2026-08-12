@@ -60,11 +60,10 @@ def seq_geometric(rng: random.Random) -> GeneratedQuestion:
     )
 
 
-def seq_diff_second_order(rng: random.Random) -> GeneratedQuestion:
-    """Second differences are constant (quadratic sequence)."""
+def _build_second_order_seq(rng, d2_choices):
     a0 = rng.randint(-10, 30)
     d0 = rng.choice([x for x in range(-6, 7) if x != 0])
-    d2 = rng.choice([-3, -2, -1, 1, 2, 3])
+    d2 = rng.choice(d2_choices)
     length = 5
     seq = [a0]
     current_diff = d0
@@ -72,8 +71,30 @@ def seq_diff_second_order(rng: random.Random) -> GeneratedQuestion:
         seq.append(seq[-1] + current_diff)
         current_diff += d2
     answer = seq[-1] + current_diff
+    return seq, answer, {"a0": a0, "d0": d0, "d2": d2}
+
+
+def seq_diff_second_order(rng: random.Random) -> GeneratedQuestion:
+    """Second differences are constant (d2=±1), easy to spot."""
+    seq, answer, meta = _build_second_order_seq(rng, [-1, 1])
     return GeneratedQuestion(
         question_type="seq_diff_second_order",
+        topic="sequences",
+        effort="low",
+        prompt=_seq_prompt(seq),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Difference sequence.",
+        grading=GradingSpec.numeric(),
+        metadata=meta,
+    )
+
+
+def seq_diff_second_order_medium(rng: random.Random) -> GeneratedQuestion:
+    """Second differences are constant (d2=±2 or ±3), harder to spot."""
+    seq, answer, meta = _build_second_order_seq(rng, [-3, -2, 2, 3])
+    return GeneratedQuestion(
+        question_type="seq_diff_second_order_medium",
         topic="sequences",
         effort="medium",
         prompt=_seq_prompt(seq),
@@ -81,7 +102,7 @@ def seq_diff_second_order(rng: random.Random) -> GeneratedQuestion:
         answer_display=str(answer),
         hint="Difference sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"a0": a0, "d0": d0, "d2": d2},
+        metadata=meta,
     )
 
 
@@ -136,38 +157,64 @@ def seq_ratio_alternating(rng: random.Random) -> GeneratedQuestion:
     )
 
 
-def seq_double_even_odd(rng: random.Random) -> GeneratedQuestion:
-    """Two interleaved arithmetic sequences at odd and even positions (1-indexed).
+def _gen_double_subseq(rng, length, allow_geometric):
+    """Generate terms and next-term for one interleaved sub-sequence.
 
-    Show 6 terms; ask for the 7th (next odd-indexed term).
+    Returns (terms, next_term, kind, params).
     """
-    nonzero = [x for x in range(-8, 9) if x != 0]
-    start_odd = rng.randint(1, 15)
-    diff_odd = rng.choice(nonzero)
-    start_even = rng.randint(-5, 20)
-    diff_even = rng.choice([x for x in nonzero if x != diff_odd])
+    if allow_geometric and rng.random() < 0.5:
+        start = rng.randint(1, 4)
+        r = rng.choice([2, 3])
+        terms = [start * r ** i for i in range(length)]
+        return terms, start * r ** length, "geometric", {"start": start, "r": r}
+    else:
+        start = rng.randint(1, 15)
+        d = rng.choice([x for x in range(-8, 9) if abs(x) >= 2])
+        terms = [start + i * d for i in range(length)]
+        return terms, start + length * d, "arithmetic", {"start": start, "d": d}
 
-    # i=0,2,4 → odd-indexed positions; i=1,3,5 → even-indexed positions
-    seq = []
-    for i in range(6):
-        k = i // 2
-        if i % 2 == 0:
-            seq.append(start_odd + k * diff_odd)
-        else:
-            seq.append(start_even + k * diff_even)
 
-    answer = start_odd + 3 * diff_odd  # 4th odd-indexed term
+def seq_double_even_odd(rng: random.Random) -> GeneratedQuestion:
+    """Two interleaved arithmetic sequences. Show 6 terms; ask for the 7th."""
+    n_per = 3  # terms per sub-sequence shown
+    odd_terms, odd_next, _, odd_params = _gen_double_subseq(rng, n_per, allow_geometric=False)
+    even_terms, _, _, even_params = _gen_double_subseq(rng, n_per, allow_geometric=False)
+
+    seq = [val for pair in zip(odd_terms, even_terms) for val in pair]
     return GeneratedQuestion(
         question_type="seq_double_even_odd",
         topic="sequences",
-        effort="medium",
+        effort="low",
         prompt=_seq_prompt(seq),
-        answer=str(answer),
-        answer_display=str(answer),
+        answer=str(odd_next),
+        answer_display=str(odd_next),
         hint="Double sequence.",
         grading=GradingSpec.numeric(),
-        metadata={"start_odd": start_odd, "diff_odd": diff_odd,
-                  "start_even": start_even, "diff_even": diff_even},
+        metadata={"odd": odd_params, "even": even_params},
+    )
+
+
+def seq_double_even_odd_medium(rng: random.Random) -> GeneratedQuestion:
+    """Two interleaved sequences, at least one geometric. Show 6 terms; ask for the 7th."""
+    n_per = 3
+    # Generate both; force a retry until at least one is geometric
+    while True:
+        odd_terms, odd_next, odd_kind, odd_params = _gen_double_subseq(rng, n_per, allow_geometric=True)
+        even_terms, _, even_kind, even_params = _gen_double_subseq(rng, n_per, allow_geometric=True)
+        if odd_kind == "geometric" or even_kind == "geometric":
+            break
+
+    seq = [val for pair in zip(odd_terms, even_terms) for val in pair]
+    return GeneratedQuestion(
+        question_type="seq_double_even_odd_medium",
+        topic="sequences",
+        effort="medium",
+        prompt=_seq_prompt(seq),
+        answer=str(odd_next),
+        answer_display=str(odd_next),
+        hint="Double sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"odd": odd_params, "even": even_params},
     )
 
 
@@ -705,9 +752,11 @@ GENERATORS = [
     seq_arithmetic,
     seq_geometric,
     seq_diff_second_order,
+    seq_diff_second_order_medium,
     seq_diff_geometric,
     seq_ratio_alternating,
     seq_double_even_odd,
+    seq_double_even_odd_medium,
     seq_double_fractional,
     seq_triplet,
     seq_grouped,
