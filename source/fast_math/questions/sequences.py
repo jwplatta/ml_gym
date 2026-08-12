@@ -294,18 +294,52 @@ def _build_grouped_seq(rng, n_groups_complete, first_start, group_start_diff,
 
 
 def seq_grouped(rng: random.Random) -> GeneratedQuestion:
-    """Medium effort: groups of 3 with modest parameter ranges.
+    """Low effort: groups of 3, delta=±1 so within-group diff changes slowly.
 
     Shows 3 complete groups plus the first element of a 4th; asks for the 2nd.
     """
-    first_start = rng.randint(10, 60)
-    group_start_diff = rng.choice([-6, -5, -4, -3, 3, 4, 5, 6])
-    first_within_d = rng.choice([-8, -7, -6, -5, -4, 4, 5, 6, 7, 8])
+    first_start = rng.randint(5, 80)
+    group_start_diff = rng.randint(-12, 12)
+    while group_start_diff == 0:
+        group_start_diff = rng.randint(-12, 12)
+    first_within_d = rng.randint(-12, 12)
+    while abs(first_within_d) < 2:
+        first_within_d = rng.randint(-12, 12)
     delta = rng.choice([-1, 1])
     seq, answer = _build_grouped_seq(rng, 3, first_start, group_start_diff,
                                      first_within_d, delta)
     return GeneratedQuestion(
         question_type="seq_grouped",
+        topic="sequences",
+        effort="low",
+        prompt=_seq_prompt(seq),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Grouped sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"first_start": first_start, "group_start_diff": group_start_diff,
+                  "first_within_d": first_within_d, "delta": delta},
+    )
+
+
+def seq_grouped_medium(rng: random.Random) -> GeneratedQuestion:
+    """Medium effort: groups of 3–4, delta=±2..±4 so within-group diff jumps less obviously.
+
+    Shows 3–4 complete groups plus the first element of the next; asks for the 2nd.
+    """
+    n_groups_complete = rng.choice([3, 4])
+    first_start = rng.randint(5, 100)
+    group_start_diff = rng.randint(-15, 15)
+    while abs(group_start_diff) < 3:
+        group_start_diff = rng.randint(-15, 15)
+    first_within_d = rng.randint(-15, 15)
+    while abs(first_within_d) < 3:
+        first_within_d = rng.randint(-15, 15)
+    delta = rng.choice([-4, -3, -2, 2, 3, 4])
+    seq, answer = _build_grouped_seq(rng, n_groups_complete, first_start,
+                                     group_start_diff, first_within_d, delta)
+    return GeneratedQuestion(
+        question_type="seq_grouped_medium",
         topic="sequences",
         effort="medium",
         prompt=_seq_prompt(seq),
@@ -319,15 +353,19 @@ def seq_grouped(rng: random.Random) -> GeneratedQuestion:
 
 
 def seq_grouped_hard(rng: random.Random) -> GeneratedQuestion:
-    """Hard effort: groups of 3 with larger numbers and a wider range of patterns.
+    """High effort: groups of 3, 4–5 complete groups, large numbers and larger delta.
 
     Shows 4–5 complete groups plus the first element of the next; asks for the 2nd.
     """
     n_groups_complete = rng.choice([4, 5])
-    first_start = rng.randint(20, 120)
-    group_start_diff = rng.choice([-10, -9, -8, -7, -6, 6, 7, 8, 9, 10])
-    first_within_d = rng.choice([-15, -12, -10, -9, -8, 8, 9, 10, 12, 15])
-    delta = rng.choice([-2, -1, 1, 2])
+    first_start = rng.randint(20, 150)
+    group_start_diff = rng.randint(-20, 20)
+    while abs(group_start_diff) < 5:
+        group_start_diff = rng.randint(-20, 20)
+    first_within_d = rng.randint(-20, 20)
+    while abs(first_within_d) < 5:
+        first_within_d = rng.randint(-20, 20)
+    delta = rng.choice([-5, -4, -3, 3, 4, 5])
     seq, answer = _build_grouped_seq(rng, n_groups_complete, first_start,
                                      group_start_diff, first_within_d, delta)
     return GeneratedQuestion(
@@ -760,6 +798,7 @@ GENERATORS = [
     seq_double_fractional,
     seq_triplet,
     seq_grouped,
+    seq_grouped_medium,
     seq_grouped_hard,
     seq_linear_diff_prior2,
     seq_linear_mult_plus_c,
