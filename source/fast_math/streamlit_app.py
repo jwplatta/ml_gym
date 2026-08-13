@@ -11,7 +11,7 @@ from source.fast_math.analytics import (
     slowest_question_types,
     summarize_history,
 )
-from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, submit_answer
+from source.fast_math.quiz import ActiveQuiz, build_quiz, finalize_quiz, go_back, submit_answer
 from source.fast_math.registry import get_topics
 from source.fast_math.storage import append_quiz_attempt, load_quiz_history
 
@@ -236,6 +236,12 @@ def render_take_quiz() -> None:
             "answer_display": attempt.answer_display,
         }
         st.rerun()
+
+    if active_quiz.current_index > 0:
+        if st.button("← Back"):
+            go_back(active_quiz)
+            st.session_state.last_feedback = None
+            st.rerun()
 
 
 def render_completed_quiz(active_quiz: ActiveQuiz) -> None:

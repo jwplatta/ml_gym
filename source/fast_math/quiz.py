@@ -172,6 +172,14 @@ def build_quiz(
     )
 
 
+def go_back(active_quiz: ActiveQuiz) -> None:
+    if active_quiz.current_index == 0:
+        raise ValueError("Already at the first question.")
+    active_quiz.current_index -= 1
+    active_quiz.attempts.pop()
+    active_quiz.question_started_at = monotonic()
+
+
 def submit_answer(active_quiz: ActiveQuiz, user_answer: str) -> QuestionAttempt:
     question = active_quiz.current_question
     if question is None:
