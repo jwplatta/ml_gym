@@ -785,6 +785,131 @@ def seq_diff_fibonacci(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def seq_harmonic_diff(rng: random.Random) -> GeneratedQuestion:
+    """Differences between consecutive terms are ±1/((n+1)*(n+2)), telescoping unit fractions."""
+    direction = rng.choice([1, -1])
+    start = rng.randint(2, 15)
+    length = 6
+    seq = [Fraction(start)]
+    for n in range(1, length):
+        seq.append(seq[-1] + direction * Fraction(1, (n + 1) * (n + 2)))
+    answer_frac = seq[-1] + direction * Fraction(1, (length + 1) * (length + 2))
+
+    def fmt(f: Fraction) -> str:
+        return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
+
+    return GeneratedQuestion(
+        question_type="seq_harmonic_diff",
+        topic="sequences",
+        effort="medium",
+        prompt=", ".join(fmt(f) for f in seq) + ", ___",
+        answer=fmt(answer_frac),
+        answer_display=fmt(answer_frac),
+        hint="Harmonic difference sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"start": start, "direction": direction},
+    )
+
+
+def seq_chained_fraction(rng: random.Random) -> GeneratedQuestion:
+    """Chained fraction: each term's denominator becomes the next term's numerator.
+
+    Denominators increase by base^((i+1)//2), so the step doubles every two terms.
+    Shows 6 terms; asks for the 7th.
+
+    Fractions are displayed WITHOUT simplification so the chain structure is visible
+    (e.g. 6/4, 4/5, ... not 3/2, 4/5, ...). The answer is stored fully reduced.
+    """
+    base = rng.choice([2, 4])
+    d0 = rng.randint(2, 8)
+    n0 = d0 + rng.randint(1, 8)
+    length = 6
+
+    denoms = [d0]
+    for i in range(length):
+        denoms.append(denoms[-1] + base ** ((i + 1) // 2))
+
+    # numers[0] = n0 (free start); numers[i] = denoms[i-1] for i >= 1 (chained)
+    numers = [n0] + denoms[:length]
+
+    # Display raw integers so the denominator→numerator chain is visible
+    def fmt_raw(n, d):
+        return str(n) if d == 1 else f"{n}/{d}"
+
+    seq_strs = [fmt_raw(numers[i], denoms[i]) for i in range(length)]
+
+    # Answer is fully reduced (grader normalises both sides via Fraction)
+    ans_frac = Fraction(numers[length], denoms[length])
+    answer = str(ans_frac.numerator) if ans_frac.denominator == 1 else f"{ans_frac.numerator}/{ans_frac.denominator}"
+
+    return GeneratedQuestion(
+        question_type="seq_chained_fraction",
+        topic="sequences",
+        effort="medium",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=answer,
+        answer_display=answer,
+        hint="Chained fraction sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"base": base, "d0": d0, "n0": n0},
+    )
+
+
+def seq_frac_cumulative_product(rng: random.Random) -> GeneratedQuestion:
+    """Each term is the product of the two preceding terms, starting from reciprocal fractional seeds."""
+    pool = [2, 3, 4, 5, 7]
+    p = rng.choice(pool)
+    q = rng.choice([x for x in pool if x != p])
+    a0 = Fraction(p, q)
+    a1 = Fraction(q, p)
+    length = 6
+    seq = [a0, a1]
+    for _ in range(length - 2):
+        seq.append(seq[-2] * seq[-1])
+    answer_frac = seq[-2] * seq[-1]
+
+    def fmt(f: Fraction) -> str:
+        return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
+
+    return GeneratedQuestion(
+        question_type="seq_frac_cumulative_product",
+        topic="sequences",
+        effort="medium",
+        prompt=", ".join(fmt(f) for f in seq) + ", ___",
+        answer=fmt(answer_frac),
+        answer_display=fmt(answer_frac),
+        hint="Cumulative product sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"p": p, "q": q},
+    )
+
+
+def seq_alternating_ops(rng: random.Random) -> GeneratedQuestion:
+    """Alternating 2-op pattern: add c and multiply r in strict alternation."""
+    r = rng.choice([2, 3, 4, 5])
+    c = rng.choice([x for x in range(-10, 11) if abs(x) >= 3])
+    start = rng.randint(1, 8)
+    first_op = rng.choice(["add", "mul"])
+    length = 6
+    seq = [start]
+    for i in range(length):
+        if (i % 2 == 0) == (first_op == "add"):
+            seq.append(seq[-1] + c)
+        else:
+            seq.append(seq[-1] * r)
+    answer = seq[length]
+    return GeneratedQuestion(
+        question_type="seq_alternating_ops",
+        topic="sequences",
+        effort="low",
+        prompt=_seq_prompt(seq[:length]),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Cyclic sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"r": r, "c": c, "start": start, "first_op": first_op},
+    )
+
 
 GENERATORS = [
     seq_arithmetic,
@@ -815,4 +940,8 @@ GENERATORS = [
     seq_cumulative_alt_ops,
     seq_cyclic_ops,
     seq_diff_fibonacci,
+    seq_harmonic_diff,
+    seq_chained_fraction,
+    seq_frac_cumulative_product,
+    seq_alternating_ops,
 ]
