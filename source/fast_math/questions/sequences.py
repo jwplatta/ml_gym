@@ -18,6 +18,18 @@ def _seq_prompt(seq) -> str:
     return ", ".join(str(x) for x in seq) + ", ___"
 
 
+def _fmt_frac_latex(n: int, d: int) -> str:
+    """Format n/d as an inline LaTeX fraction; plain integer when d == 1."""
+    if d == 1:
+        return str(n)
+    return f"$\\frac{{{n}}}{{{d}}}$"
+
+
+def _fmt_frac_plain(f: Fraction) -> str:
+    """Format a Fraction as plain n/d — used for the answer field that the grader parses."""
+    return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
+
+
 # ── Raw Sequences ───────────────────────────────────────────────────────────────
 
 def seq_arithmetic(rng: random.Random) -> GeneratedQuestion:
@@ -230,11 +242,11 @@ def seq_double_fractional(rng: random.Random) -> GeneratedQuestion:
     diff_den = rng.choice([2, 3])
     length = 4
 
-    seq_strs = [f"{num0 + i * diff_num}/{den0 + i * diff_den}" for i in range(length)]
+    seq_strs = [_fmt_frac_latex(num0 + i * diff_num, den0 + i * diff_den) for i in range(length)]
     n_ans = num0 + length * diff_num
     d_ans = den0 + length * diff_den
     frac = Fraction(n_ans, d_ans)
-    answer = f"{frac.numerator}/{frac.denominator}"
+    answer = _fmt_frac_plain(frac)
 
     return GeneratedQuestion(
         question_type="seq_double_fractional",
@@ -242,7 +254,7 @@ def seq_double_fractional(rng: random.Random) -> GeneratedQuestion:
         effort="medium",
         prompt=", ".join(seq_strs) + ", ___",
         answer=answer,
-        answer_display=answer,
+        answer_display=_fmt_frac_latex(frac.numerator, frac.denominator),
         hint="Double sequence.",
         grading=GradingSpec.fraction(),
         metadata={"num0": num0, "den0": den0, "diff_num": diff_num, "diff_den": diff_den},
@@ -585,18 +597,22 @@ def seq_latent_alphabetic(rng: random.Random) -> GeneratedQuestion:
 def seq_cumulative_product_3(rng: random.Random) -> GeneratedQuestion:
     """Each term is the product of the three terms before it."""
     seeds = [-2, -1, 1, 2]
-    a0 = rng.choice(seeds)
-    a1 = rng.choice(seeds)
-    # Ensure at least one seed is ±1 to prevent runaway growth
-    if abs(a0) > 1 and abs(a1) > 1:
-        a2 = rng.choice([-1, 1])
-    else:
-        a2 = rng.choice(seeds)
-    length = 6
-    seq = [a0, a1, a2]
-    for _ in range(length - 3):
-        seq.append(seq[-1] * seq[-2] * seq[-3])
-    answer = seq[-1] * seq[-2] * seq[-3]
+    while True:
+        a0 = rng.choice(seeds)
+        a1 = rng.choice(seeds)
+        # Ensure at least one seed is ±1 to prevent runaway growth
+        if abs(a0) > 1 and abs(a1) > 1:
+            a2 = rng.choice([-1, 1])
+        else:
+            a2 = rng.choice(seeds)
+        length = 6
+        seq = [a0, a1, a2]
+        for _ in range(length - 3):
+            seq.append(seq[-1] * seq[-2] * seq[-3])
+        answer = seq[-1] * seq[-2] * seq[-3]
+        # Reject trivial sequences where every shown term is identical
+        if len(set(seq)) > 1:
+            break
     return GeneratedQuestion(
         question_type="seq_cumulative_product_3",
         topic="sequences",
@@ -697,18 +713,15 @@ def seq_cumulative_alt_ops(rng: random.Random) -> GeneratedQuestion:
     else:
         ans_frac = seq[-2] / seq[-1]
 
-    def fmt(f: Fraction) -> str:
-        return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
-
-    seq_strs = [fmt(x) for x in seq]
-    answer = fmt(ans_frac)
+    seq_strs = [_fmt_frac_latex(x.numerator, x.denominator) for x in seq]
+    answer = _fmt_frac_plain(ans_frac)
     return GeneratedQuestion(
         question_type="seq_cumulative_alt_ops",
         topic="sequences",
         effort="medium",
         prompt=", ".join(seq_strs) + ", ___",
         answer=answer,
-        answer_display=answer,
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
         hint="Cumulative product sequence.",
         grading=GradingSpec.fraction(),
         metadata={"a0": str(a0), "a1": str(a1)},
@@ -759,6 +772,63 @@ def seq_cyclic_ops(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def seq_cyclic_ops_fractional(rng: random.Random) -> GeneratedQuestion:
+    """Cyclic 3-op: +c and ×r (in either order) then ÷k, where ÷k yields a non-integer fraction.
+
+    Unlike seq_cyclic_ops, divisibility is not enforced — the ÷k step deliberately
+    produces fractions that persist through all subsequent operations.
+    The sequence opens with 2 integer terms then turns fractional.
+    Shows 5 terms (one full cycle + 2); asks for the 6th.
+    """
+    while True:
+        k = rng.choice([3, 5, 7])
+        r = rng.choice([x for x in range(2, 9) if x % k != 0])
+        c = rng.randint(3, 10)
+        start = rng.randint(2, 15)
+
+        # ÷k always comes last; first two ops are +c and ×r in either order
+        if rng.random() < 0.5:
+            ops = [("add", c), ("mul", r), ("div", k)]
+        else:
+            ops = [("mul", r), ("add", c), ("div", k)]
+
+        seq = [Fraction(start)]
+        for i in range(5):
+            name, arg = ops[i % 3]
+            if name == "add":
+                seq.append(seq[-1] + arg)
+            elif name == "mul":
+                seq.append(seq[-1] * arg)
+            else:
+                seq.append(seq[-1] / arg)
+
+        answer_frac = seq[5]
+
+        # Must have at least one non-integer in the 5 shown terms
+        if all(x.denominator == 1 for x in seq[:5]):
+            continue
+        # Keep numbers manageable
+        if abs(answer_frac.numerator) > 5000:
+            continue
+
+        break
+
+    def fmt(f: Fraction) -> str:
+        return str(f.numerator) if f.denominator == 1 else _fmt_frac_latex(f.numerator, f.denominator)
+
+    return GeneratedQuestion(
+        question_type="seq_cyclic_ops_fractional",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(fmt(f) for f in seq[:5]) + ", ___",
+        answer=_fmt_frac_plain(answer_frac),
+        answer_display=_fmt_frac_latex(answer_frac.numerator, answer_frac.denominator),
+        hint="Cyclic sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"c": c, "r": r, "k": k, "start": start, "op_order": [o[0] for o in ops]},
+    )
+
+
 def seq_diff_fibonacci(rng: random.Random) -> GeneratedQuestion:
     """Differences between consecutive terms follow a Fibonacci-like pattern."""
     d0 = rng.randint(1, 5)
@@ -795,16 +865,13 @@ def seq_harmonic_diff(rng: random.Random) -> GeneratedQuestion:
         seq.append(seq[-1] + direction * Fraction(1, (n + 1) * (n + 2)))
     answer_frac = seq[-1] + direction * Fraction(1, (length + 1) * (length + 2))
 
-    def fmt(f: Fraction) -> str:
-        return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
-
     return GeneratedQuestion(
         question_type="seq_harmonic_diff",
         topic="sequences",
         effort="medium",
-        prompt=", ".join(fmt(f) for f in seq) + ", ___",
-        answer=fmt(answer_frac),
-        answer_display=fmt(answer_frac),
+        prompt=", ".join(_fmt_frac_latex(f.numerator, f.denominator) for f in seq) + ", ___",
+        answer=_fmt_frac_plain(answer_frac),
+        answer_display=_fmt_frac_latex(answer_frac.numerator, answer_frac.denominator),
         hint="Harmonic difference sequence.",
         grading=GradingSpec.fraction(),
         metadata={"start": start, "direction": direction},
@@ -832,15 +899,12 @@ def seq_chained_fraction(rng: random.Random) -> GeneratedQuestion:
     # numers[0] = n0 (free start); numers[i] = denoms[i-1] for i >= 1 (chained)
     numers = [n0] + denoms[:length]
 
-    # Display raw integers so the denominator→numerator chain is visible
-    def fmt_raw(n, d):
-        return str(n) if d == 1 else f"{n}/{d}"
-
-    seq_strs = [fmt_raw(numers[i], denoms[i]) for i in range(length)]
+    # Display raw integers (no simplification) so the denominator→numerator chain is visible
+    seq_strs = [_fmt_frac_latex(numers[i], denoms[i]) for i in range(length)]
 
     # Answer is fully reduced (grader normalises both sides via Fraction)
     ans_frac = Fraction(numers[length], denoms[length])
-    answer = str(ans_frac.numerator) if ans_frac.denominator == 1 else f"{ans_frac.numerator}/{ans_frac.denominator}"
+    answer = _fmt_frac_plain(ans_frac)
 
     return GeneratedQuestion(
         question_type="seq_chained_fraction",
@@ -848,7 +912,7 @@ def seq_chained_fraction(rng: random.Random) -> GeneratedQuestion:
         effort="medium",
         prompt=", ".join(seq_strs) + ", ___",
         answer=answer,
-        answer_display=answer,
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
         hint="Chained fraction sequence.",
         grading=GradingSpec.fraction(),
         metadata={"base": base, "d0": d0, "n0": n0},
@@ -868,16 +932,13 @@ def seq_frac_cumulative_product(rng: random.Random) -> GeneratedQuestion:
         seq.append(seq[-2] * seq[-1])
     answer_frac = seq[-2] * seq[-1]
 
-    def fmt(f: Fraction) -> str:
-        return str(f.numerator) if f.denominator == 1 else f"{f.numerator}/{f.denominator}"
-
     return GeneratedQuestion(
         question_type="seq_frac_cumulative_product",
         topic="sequences",
         effort="medium",
-        prompt=", ".join(fmt(f) for f in seq) + ", ___",
-        answer=fmt(answer_frac),
-        answer_display=fmt(answer_frac),
+        prompt=", ".join(_fmt_frac_latex(f.numerator, f.denominator) for f in seq) + ", ___",
+        answer=_fmt_frac_plain(answer_frac),
+        answer_display=_fmt_frac_latex(answer_frac.numerator, answer_frac.denominator),
         hint="Cumulative product sequence.",
         grading=GradingSpec.fraction(),
         metadata={"p": p, "q": q},
@@ -939,6 +1000,7 @@ GENERATORS = [
     seq_latent_prime_alternating,
     seq_cumulative_alt_ops,
     seq_cyclic_ops,
+    seq_cyclic_ops_fractional,
     seq_diff_fibonacci,
     seq_harmonic_diff,
     seq_chained_fraction,

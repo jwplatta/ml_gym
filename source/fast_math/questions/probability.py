@@ -1558,8 +1558,9 @@ def rain_sub_interval_probability(rng: random.Random) -> GeneratedQuestion:
     # P(rain in sub-interval) = 1 - q_full^(1/k)
     q_sub = float(q_full) ** (1 / k)
     p_sub = 1 - q_sub
-    answer = round(p_sub * 100, 2)
-    answer_str = f"{answer:.2f}".rstrip("0").rstrip(".")
+    answer_dec = round(p_sub, 6)
+    answer_str = f"{answer_dec:.6f}".rstrip("0").rstrip(".")
+    answer_pct = f"{round(p_sub * 100, 2):.2f}".rstrip("0").rstrip(".")
 
     return GeneratedQuestion(
         question_type="rain_sub_interval_probability",
@@ -1569,23 +1570,23 @@ def rain_sub_interval_probability(rng: random.Random) -> GeneratedQuestion:
         prompt=(
             f"The chance it'll rain in the next {window_label} is {p_pct_display}. "
             f"What is the chance it'll rain in the next {sub_label}? "
-            f"Give your answer as a percentage rounded to 2 decimal places."
+            f"Give your answer as a decimal or fraction."
         ),
         answer=answer_str,
-        answer_display=f"{answer_str}%",
+        answer_display=f"{answer_str} ({answer_pct}%)",
         hint=(
             f"Let q = P(no rain in {sub_label}). "
             f"Then q^{k} = P(no rain in {window_label}) = 1 - {p_pct_display}. "
             f"Solve for q, then P(rain in {sub_label}) = 1 - q."
         ),
-        grading=GradingSpec.numeric(tolerance=0.01),
+        grading=GradingSpec.numeric(tolerance=0.001),
         metadata={
             "k": k,
             "window_label": window_label,
             "sub_label": sub_label,
             "p_full_pct": p_pct_display,
             "q_full": str(q_full),
-            "answer_pct": answer_str,
+            "answer_pct": answer_pct,
         },
     )
 
