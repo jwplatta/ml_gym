@@ -6,6 +6,13 @@ from source.fast_math.models import GeneratedQuestion, GradingSpec
 
 _CF_HINT = "Multiply and divide by a common factor to make the problem easier."
 
+
+def _is_single_digit_power_of_10(n: int) -> bool:
+    """Return True for numbers like 10, 20, 300, 4000 — a single non-zero digit times a power of 10."""
+    while n % 10 == 0:
+        n //= 10
+    return n < 10
+
 _CF_MEDIUM_SHAPES = [(2, 2), (2, 3), (3, 3)]
 _CF_HIGH_SHAPES = [(2, 4), (3, 4), (4, 4)]
 
@@ -45,6 +52,10 @@ def _gen_cf_pair(rng: random.Random, shapes: list) -> tuple:
 
         # Randomly assign which position is complex vs free.
         a, b = (complex_factor, free) if rng.random() < 0.5 else (free, complex_factor)
+        # Reject if either factor is a single digit times a power of 10 (e.g. 20, 300, 4000)
+        # — multiplying by those is trivial (just scale and append zeros).
+        if _is_single_digit_power_of_10(a) or _is_single_digit_power_of_10(b):
+            continue
         return a, b, k
 
     raise RuntimeError("_gen_cf_pair failed to find valid pair")
