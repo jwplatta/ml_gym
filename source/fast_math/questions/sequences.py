@@ -972,6 +972,146 @@ def seq_alternating_ops(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def seq_fib_over_squares(rng: random.Random) -> GeneratedQuestion:
+    """Numerators follow Fibonacci; denominators are consecutive perfect squares.
+
+    Fractions are displayed in reduced form, hiding the square denominators.
+    Shows 6 terms; asks for the 7th.
+    """
+    # _FIBONACCI = [1,1,2,3,5,8,13,21,34,55,89] — need 7 consecutive values
+    fib_start = rng.randint(2, 4)          # indices 2-4 → values 2,3,5
+    den_start = rng.randint(2, 5)          # n² starting square: 4,9,16,25
+    length = 6
+
+    raw_fibs = [_FIBONACCI[fib_start + i] for i in range(length + 1)]
+    fracs = [Fraction(raw_fibs[i], (den_start + i) ** 2) for i in range(length + 1)]
+
+    seq_strs = [_fmt_frac_latex(f.numerator, f.denominator) for f in fracs[:length]]
+    ans_frac = fracs[length]
+    answer = _fmt_frac_plain(ans_frac)
+
+    return GeneratedQuestion(
+        question_type="seq_fib_over_squares",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=answer,
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
+        hint="Latent Fibonacci sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"fib_start": fib_start, "den_start": den_start},
+    )
+
+
+def seq_alternating_frac_diff(rng: random.Random) -> GeneratedQuestion:
+    """Differences alternate sign and grow: diff[j] = sign * (j+1)/(j+2).
+
+    Concretely: -1/2, +2/3, -3/4, +4/5, -5/6, +6/7, …  (or the opposite sign).
+    Shows 6 terms; asks for the 7th.
+    """
+    direction = rng.choice([1, -1])
+    # Start as a simple integer so first few terms look approachable
+    start_val = rng.randint(1, 10)
+    length = 6
+    seq = [Fraction(start_val)]
+    for j in range(length):
+        d = Fraction(direction * ((-1) ** j) * (j + 1), j + 2)
+        seq.append(seq[-1] + d)
+
+    ans_frac = seq[length]
+    seq_strs = [_fmt_frac_latex(f.numerator, f.denominator) for f in seq[:length]]
+    answer = _fmt_frac_plain(ans_frac)
+
+    return GeneratedQuestion(
+        question_type="seq_alternating_frac_diff",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=answer,
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
+        hint="Harmonic difference sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"start_val": start_val, "direction": direction},
+    )
+
+
+def seq_alt_recurrence_2back(rng: random.Random) -> GeneratedQuestion:
+    """Alternating recurrence: even-index terms use a[n-1]+a[n-2], odd-index use a[n-1]+a[n-3].
+
+    Shows 6 terms; asks for the 7th (even-indexed, so uses the n-1+n-2 rule).
+    """
+    a0 = rng.randint(-5, 5)
+    a1 = rng.randint(-5, 5)
+    while a0 == 0 and a1 == 0:
+        a1 = rng.randint(-5, 5)
+    length = 7
+    seq = [a0, a1]
+    for n in range(2, length):
+        if n % 2 == 0:
+            seq.append(seq[-1] + seq[-2])
+        else:
+            seq.append(seq[-1] + seq[-3])
+
+    # Reject if all shown terms are the same or sequence is boring
+    shown = seq[:6]
+    if len(set(shown)) <= 2:
+        # Fallback: retry with different seeds
+        a0, a1 = rng.randint(-5, 5), rng.randint(-5, 5)
+        seq = [a0, a1]
+        for n in range(2, length):
+            if n % 2 == 0:
+                seq.append(seq[-1] + seq[-2])
+            else:
+                seq.append(seq[-1] + seq[-3])
+
+    answer = seq[6]
+    return GeneratedQuestion(
+        question_type="seq_alt_recurrence_2back",
+        topic="sequences",
+        effort="high",
+        prompt=_seq_prompt(seq[:6]),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Linear sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"a0": a0, "a1": a1},
+    )
+
+
+def seq_cumulative_sum_3(rng: random.Random) -> GeneratedQuestion:
+    """Each term is the sum of the three preceding terms: a[n] = a[n-1] + a[n-2] + a[n-3].
+
+    Seeds may include zero and small negatives to produce non-obvious sequences.
+    Shows 6 terms; asks for the 7th.
+    """
+    seeds = list(range(-3, 4))   # -3..3
+    while True:
+        a0 = rng.choice(seeds)
+        a1 = rng.choice(seeds)
+        a2 = rng.choice(seeds)
+        length = 7
+        seq = [a0, a1, a2]
+        for _ in range(length - 3):
+            seq.append(seq[-1] + seq[-2] + seq[-3])
+        shown = seq[:6]
+        # Reject trivial all-zero or all-same sequences
+        if len(set(shown)) >= 3:
+            break
+
+    answer = seq[6]
+    return GeneratedQuestion(
+        question_type="seq_cumulative_sum_3",
+        topic="sequences",
+        effort="medium",
+        prompt=_seq_prompt(shown),
+        answer=str(answer),
+        answer_display=str(answer),
+        hint="Cumulative sum sequence.",
+        grading=GradingSpec.numeric(),
+        metadata={"a0": a0, "a1": a1, "a2": a2},
+    )
+
+
 GENERATORS = [
     seq_arithmetic,
     seq_geometric,
@@ -1006,4 +1146,8 @@ GENERATORS = [
     seq_chained_fraction,
     seq_frac_cumulative_product,
     seq_alternating_ops,
+    seq_fib_over_squares,
+    seq_alternating_frac_diff,
+    seq_alt_recurrence_2back,
+    seq_cumulative_sum_3,
 ]
