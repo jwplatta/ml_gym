@@ -216,7 +216,7 @@ def painted_cube_hidden_red_given_visible_white(rng: random.Random) -> Generated
         question_type="painted_cube_hidden_red_given_visible_white",
         topic="probability",
         subtopic="bayes",
-        effort="high",
+        effort="medium",
         prompt=(
             f"There is a {side_length}x{side_length}x{side_length} cube whose outer surface is painted red "
             "and all inner faces are white. One of the component 1x1 cubes is selected at random and thrown on a table. "
@@ -712,7 +712,7 @@ def three_dice_match_expected_value(rng: random.Random) -> GeneratedQuestion:
         question_type="three_dice_match_expected_value",
         topic="probability",
         subtopic="expectation",
-        effort="high",
+        effort="medium",
         prompt=(
             f"You roll 3 fair {sides}-sided dice. If all three match, you win {triple_payout}. "
             f"If exactly two match, you win {pair_payout}. If all three are different, you lose {all_different_loss}. "
