@@ -863,7 +863,7 @@ def tournament_top_two_meet_in_round(rng: random.Random) -> GeneratedQuestion:
         question_type="tournament_top_two_meet_in_round",
         topic="probability",
         subtopic="combinations",
-        effort="high",
+        effort="medium",
         prompt=(
             f"A single-elimination tennis tournament has {n} players. "
             "Each player has a unique rating and the higher-rated player always wins. "
