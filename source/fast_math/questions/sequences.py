@@ -1078,6 +1078,117 @@ def seq_alt_recurrence_2back(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+def seq_fib_like_over_squares(rng: random.Random) -> GeneratedQuestion:
+    """Fibonacci-like recurrence (arbitrary seeds) on numerators; denominators are consecutive squares.
+
+    Numerators: a[n] = a[n-2] + a[n-1] with non-Fibonacci integer seeds.
+    Denominators: 1^2, 2^2, 3^2, ...
+    Fractions shown reduced -- the 1st term appears as a plain integer, masking the pattern.
+    Shows 6 terms; asks for the 7th.
+    """
+    # Seeds deliberately chosen outside the standard Fibonacci set so the pattern
+    # is not immediately obvious from the numerator values alone.
+    fib_set = {1, 2, 3, 5, 8, 13, 21, 34, 55, 89}
+    seed_pool = [x for x in range(4, 20) if x not in fib_set]
+    a = rng.choice(seed_pool)
+    b = rng.choice([x for x in seed_pool if x != a])
+    length = 6
+
+    nums = [a, b]
+    for _ in range(length - 1):
+        nums.append(nums[-2] + nums[-1])
+
+    fracs = [Fraction(nums[i], (i + 1) ** 2) for i in range(length + 1)]
+
+    seq_strs = []
+    for f in fracs[:length]:
+        if f.denominator == 1:
+            seq_strs.append(str(f.numerator))
+        else:
+            seq_strs.append(_fmt_frac_latex(f.numerator, f.denominator))
+
+    ans_frac = fracs[length]
+    return GeneratedQuestion(
+        question_type="seq_fib_like_over_squares",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=_fmt_frac_plain(ans_frac),
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
+        hint="Latent Fibonacci sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"a": a, "b": b},
+    )
+
+
+def seq_diff_sequential_ratio(rng: random.Random) -> GeneratedQuestion:
+    """Differences between consecutive terms are direction * n/(n+1) for n=1,2,3,...
+
+    All differences have the same sign and grow in magnitude: 1/2, 2/3, 3/4, 4/5, 5/6, 6/7.
+    Shows 6 terms (so 5 diffs are visible); asks for the 7th.
+    """
+    direction = rng.choice([1, -1])
+    start = Fraction(rng.randint(-8, 8) or 1)
+    length = 6
+    seq = [start]
+    for n in range(1, length + 1):
+        seq.append(seq[-1] + direction * Fraction(n, n + 1))
+
+    ans_frac = seq[length]
+    seq_strs = [_fmt_frac_latex(f.numerator, f.denominator) for f in seq[:length]]
+    return GeneratedQuestion(
+        question_type="seq_diff_sequential_ratio",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=_fmt_frac_plain(ans_frac),
+        answer_display=_fmt_frac_latex(ans_frac.numerator, ans_frac.denominator),
+        hint="Harmonic difference sequence.",
+        grading=GradingSpec.fraction(),
+        metadata={"start": str(start), "direction": direction},
+    )
+
+
+def seq_double_power_second_order(rng: random.Random) -> GeneratedQuestion:
+    """base^exponent sequence where both base and exponent follow second-order arithmetic.
+
+    Base differences increase by 1 each step (starting at db).
+    Exponent differences increase by 1 each step (starting at de).
+    Shows 4 terms; asks for the 5th.
+    Answer format: base^exp (e.g. 26^16).
+    """
+    b0 = rng.randint(2, 10)
+    db = rng.randint(2, 5)
+    e0 = rng.randint(1, 4)
+    de = rng.randint(1, 4)
+    length = 4
+
+    bases = [b0]
+    exps = [e0]
+    curr_db = db
+    curr_de = de
+    for _ in range(length):
+        bases.append(bases[-1] + curr_db)
+        exps.append(exps[-1] + curr_de)
+        curr_db += 1
+        curr_de += 1
+
+    seq_strs = [f"${bases[i]}^{{{exps[i]}}}$" for i in range(length)]
+    ans_base = bases[length]
+    ans_exp = exps[length]
+    return GeneratedQuestion(
+        question_type="seq_double_power_second_order",
+        topic="sequences",
+        effort="high",
+        prompt=", ".join(seq_strs) + ", ___",
+        answer=f"{ans_base}^{ans_exp}",
+        answer_display=f"${ans_base}^{{{ans_exp}}}$",
+        hint="Double sequence.",
+        grading=GradingSpec.text(),
+        metadata={"b0": b0, "db": db, "e0": e0, "de": de},
+    )
+
+
 def seq_cumulative_sum_3(rng: random.Random) -> GeneratedQuestion:
     """Each term is the sum of the three preceding terms: a[n] = a[n-1] + a[n-2] + a[n-3].
 
@@ -1150,4 +1261,7 @@ GENERATORS = [
     seq_alternating_frac_diff,
     seq_alt_recurrence_2back,
     seq_cumulative_sum_3,
+    seq_fib_like_over_squares,
+    seq_diff_sequential_ratio,
+    seq_double_power_second_order,
 ]
