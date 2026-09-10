@@ -2,7 +2,9 @@ from source.fast_math.questions.addition_subtraction import GENERATORS as ADDITI
 from source.fast_math.questions.consecutive_sums import GENERATORS as CONSECUTIVE_SUMS_GENERATORS
 from source.fast_math.questions.counting import GENERATORS as COUNTING_GENERATORS
 from source.fast_math.questions.division import GENERATORS as DIVISION_GENERATORS
+from source.fast_math.questions.fraction_arithmetic import GENERATORS as FRACTION_ARITHMETIC_GENERATORS
 from source.fast_math.questions.games import GENERATORS as GAMES_GENERATORS
+from source.fast_math.questions.missing_operand import GENERATORS as MISSING_OPERAND_GENERATORS
 from source.fast_math.questions.multiplication import GENERATORS as MULTIPLICATION_GENERATORS
 from source.fast_math.questions.probability import GENERATORS as PROBABILITY_GENERATORS
 from source.fast_math.questions.sequences import GENERATORS as SEQUENCES_GENERATORS
@@ -12,7 +14,9 @@ ALL_GENERATORS = (
     *ADDITION_SUBTRACTION_GENERATORS,
     *COUNTING_GENERATORS,
     *DIVISION_GENERATORS,
+    *FRACTION_ARITHMETIC_GENERATORS,
     *GAMES_GENERATORS,
+    *MISSING_OPERAND_GENERATORS,
     *MULTIPLICATION_GENERATORS,
     *PROBABILITY_GENERATORS,
     *SEQUENCES_GENERATORS,
@@ -25,7 +29,9 @@ __all__ = [
     "ADDITION_SUBTRACTION_GENERATORS",
     "COUNTING_GENERATORS",
     "DIVISION_GENERATORS",
+    "FRACTION_ARITHMETIC_GENERATORS",
     "GAMES_GENERATORS",
+    "MISSING_OPERAND_GENERATORS",
     "MULTIPLICATION_GENERATORS",
     "PROBABILITY_GENERATORS",
     "SEQUENCES_GENERATORS",
