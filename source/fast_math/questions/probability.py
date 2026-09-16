@@ -302,7 +302,7 @@ def one_of_each_rank_before_ace_of_diamonds(rng: random.Random) -> GeneratedQues
         question_type="one_of_each_rank_before_ace_of_diamonds",
         topic="probability",
         subtopic="combinations",
-        effort="high",
+        effort="low",
         prompt=(
             "Cards are dealt from a randomly shuffled 52-card deck until the ace of diamonds appears. "
             f"What is the probability that exactly {requirement_text} appear before the ace of diamonds? "
@@ -367,7 +367,7 @@ def expected_rolls_until_target_face(rng: random.Random) -> GeneratedQuestion:
         question_type="expected_rolls_until_target_face",
         topic="probability",
         subtopic="expectation",
-        effort="medium",
+        effort="low",
         prompt=(
             f"You roll a fair {sides}-sided die until a {target_face} comes up. "
             f"What is the expected number of rolls? {answer_instruction}"
@@ -397,7 +397,7 @@ def expected_rolls_to_see_all_faces(rng: random.Random) -> GeneratedQuestion:
         question_type="expected_rolls_to_see_all_faces",
         topic="probability",
         subtopic="expectation",
-        effort="high",
+        effort="low",
         prompt=(
             f"What is the expected number of rolls of a fair {sides}-sided die until you have seen every face at least once? "
             f"{answer_instruction}"
@@ -863,7 +863,7 @@ def tournament_top_two_meet_in_round(rng: random.Random) -> GeneratedQuestion:
         question_type="tournament_top_two_meet_in_round",
         topic="probability",
         subtopic="combinations",
-        effort="medium",
+        effort="low",
         prompt=(
             f"A single-elimination tennis tournament has {n} players. "
             "Each player has a unique rating and the higher-rated player always wins. "
@@ -1664,6 +1664,73 @@ def phone_number_permutation_pvalue(rng: random.Random) -> GeneratedQuestion:
     )
 
 
+_PAIR_MATCH_SCENARIOS = [
+    {
+        "context": "Two fair spinners each have {n} equally likely outcomes numbered 1 to {n}.",
+        "item": "spinner",
+        "attribute": "landed on",
+        "value_label": "",
+    },
+    {
+        "context": "A market analyst tracks many stocks, each with a rating from 1 to {n}. Two stocks are selected at random.",
+        "item": "stock",
+        "attribute": "has a rating of",
+        "value_label": "",
+    },
+    {
+        "context": "A teacher grades essays on a scale from 1 to {n}. Two essays are selected at random.",
+        "item": "essay",
+        "attribute": "received a score of",
+        "value_label": "",
+    },
+    {
+        "context": "A warehouse has bins labeled 1 to {n}. Two packages are independently assigned to random bins.",
+        "item": "package",
+        "attribute": "was assigned to bin",
+        "value_label": "",
+    },
+    {
+        "context": "A hotel assigns guests to floors 1 through {n} uniformly at random. Two guests check in independently.",
+        "item": "guest",
+        "attribute": "is on floor",
+        "value_label": "",
+    },
+]
+
+
+def two_spinner_match_given_one(rng: random.Random) -> GeneratedQuestion:
+    """P(both=k | at least one=k) = 1/(2N-1) for two uniform-random items."""
+    n = rng.randint(3, 20)
+    k = rng.randint(1, n)
+    scenario = rng.choice(_PAIR_MATCH_SCENARIOS)
+    answer = Fraction(1, 2 * n - 1)
+    answer_str = str(answer)
+    context = scenario["context"].format(n=n)
+    return GeneratedQuestion(
+        question_type="two_spinner_match_given_one",
+        topic="probability",
+        subtopic="conditional-probability",
+        effort="low",
+        prompt=(
+            f"{context} "
+            f"Given that at least one {scenario['item']} {scenario['attribute']} {k}, "
+            f"what is the probability that the other also {scenario['attribute']} {k}? "
+            "Give a simplified fraction."
+        ),
+        answer=answer_str,
+        answer_display=answer_str,
+        hint=(
+            f"Let X = number of items with value {k}. "
+            f"P(X=2 | X>=1) = P(X=2) / P(X>=1). "
+            f"P(X=2) = (1/{n})^2 = 1/{n*n}. "
+            f"P(X>=1) = 1 - ({n-1}/{n})^2 = {2*n-1}/{n*n}. "
+            f"So the answer is 1/{2*n-1}."
+        ),
+        grading=GradingSpec.fraction(),
+        metadata={"n": n, "k": k, "scenario": scenario["item"], "fraction": answer_str},
+    )
+
+
 GENERATORS = [
     even_or_prime_die_roll,
     equal_heads_n_flips,
@@ -1696,4 +1763,5 @@ GENERATORS = [
     exactly_k_heads_in_n_flips,
     rain_sub_interval_probability,
     phone_number_permutation_pvalue,
+    two_spinner_match_given_one,
 ]
